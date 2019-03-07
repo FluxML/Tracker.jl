@@ -1,6 +1,5 @@
-using Flux
-using Flux.Tracker, Test, NNlib
-using Flux.Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
+using Tracker, Test, NNlib
+using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
 using Printf: @sprintf
 using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet
@@ -29,9 +28,6 @@ gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @test gradtest(x -> logsoftmax(x).*(1:3), 3)
 @test gradtest(x -> logsoftmax(x).*(1:3), (3,5))
 
-@test gradtest(Flux.mse, rand(5,5), rand(5, 5))
-@test gradtest(Flux.crossentropy, rand(5,5), rand(5, 5))
-
 @test gradtest(x -> x', rand(5))
 
 @test gradtest(det, (4, 4))
@@ -52,7 +48,7 @@ function promotiontest(f, A, B, C)
   @test !isa(r0, TrackedArray)
   @test all(isa.([r1,r2,r3,r4], TrackedArray))
   @test r1 == r2 == r3 == r4
-  @test r0 == Flux.data(r4)
+  @test r0 == Tracker.data(r4)
 end
 
 @testset "concat" begin
@@ -180,9 +176,6 @@ end
 @test gradtest(x -> std(x, dims = 1), rand(5,5))
 @test gradtest(x -> std(x, dims = 1, corrected = false), rand(5,5))
 
-@test gradtest(x -> Flux.normalise(x), rand(4,3))
-@test gradtest(x -> Flux.normalise(x, dims = 2), rand(3,4))
-
 @test gradtest((x, y) -> x .* y, rand(5), rand(5))
 @test gradtest(dot, rand(5), rand(5))
 
@@ -258,10 +251,10 @@ end
 @testset "Intermediates" begin
   x = param([1])
   l = sum((x .+ x).^2)
-  Flux.back!(l, once = false)
+  Tracker.back!(l, once = false)
   @test x.grad == [8]
   x.grad .= 0
-  Flux.back!(l, once = false)
+  Tracker.back!(l, once = false)
   @test x.grad == [8]
 end
 
