@@ -1,5 +1,5 @@
 name = "Tracker"
-uuid = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+uuid = "587475ba-b771-5e3f-ad9e-33799f181a9c"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
