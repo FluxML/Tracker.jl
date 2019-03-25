@@ -85,10 +85,7 @@ end
 Base.size(x::TrackedArray, i::Integer, j::Integer, is::Integer...) =
   size(data(x), i, j, is...)
 
-Base.similar(x::TrackedArray, dims::Union{AbstractUnitRange,Integer}...) =
-  similar(data(x), dims...)
-
-Base.similar(x::TrackedArray, T::Type) = similar(data(x), T)
+Base.similar(x::TrackedArray, T::Type, dims::Dims) = similar(data(x), T, dims)
 
 for op in [:(==), :≈]
     @eval Base.$op(x::TrackedArray, y::AbstractArray) = Base.$op(data(x), y)
