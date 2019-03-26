@@ -2,7 +2,7 @@ using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
 using Printf: @sprintf
-using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet
+using LinearAlgebra: diagm, dot, UpperTriangular, LowerTriangular, norm, det, logdet, logabsdet
 using Statistics: mean, std
 using Random
 # using StatsBase
@@ -138,6 +138,9 @@ end
 @test gradtest(kron, rand(5,1), rand(3,1))
 @test gradtest(kron, rand(5,1), rand(3,1), rand(8,1))
 @test gradtest(kron, rand(5,2), rand(3,2), rand(8,2))
+
+@test gradtest(UpperTriangular, rand(4,4))
+@test gradtest(LowerTriangular, rand(4,4))
 
 @test gradtest(x -> diagm(0 => x), rand(3))
 
