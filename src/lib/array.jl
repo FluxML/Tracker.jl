@@ -257,13 +257,13 @@ Base.kron(a::AbstractMatrix, b::TrackedMatrix) = _kron(a, b)
 LinearAlgebra.UpperTriangular(a::TrackedMatrix) = track(UpperTriangular, a)
 
 @grad function UpperTriangular(a)
-  return collect(UpperTriangular(data(a))), Δ -> (collect(UpperTriangular(Δ)),)
+  return UpperTriangular(data(a)), Δ -> (UpperTriangular(Δ),)
 end
 
 LinearAlgebra.LowerTriangular(a::TrackedMatrix) = track(LowerTriangular, a)
 
 @grad function LowerTriangular(a)
-  return collect(LowerTriangular(data(a))), Δ -> (collect(LowerTriangular(Δ)),)
+  return LowerTriangular(data(a)), Δ -> (LowerTriangular(Δ),)
 end
 
 inv(A::TrackedArray) = Tracker.track(inv, A)
