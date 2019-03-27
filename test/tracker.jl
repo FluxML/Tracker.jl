@@ -1,6 +1,6 @@
 using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
-using NNlib: conv, ∇conv_data, depthwiseconv
+using NNlib: conv, ∇conv_data, depthwiseconv, crosscor
 using Printf: @sprintf
 using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet
 using Statistics: mean, std
@@ -189,6 +189,10 @@ end
 @test gradtest(conv, rand(10, 3, 2), randn(Float64, 2, 3, 2))
 @test gradtest(conv, rand(10, 10, 3, 2), randn(Float64, 2, 2, 3, 2))
 @test gradtest(conv, rand(10, 10, 10, 3, 2), randn(Float64, 2, 2, 2, 3, 2))
+
+@test gradtest(crosscor, rand(10, 3, 2), randn(Float64, 2, 3, 2))
+@test gradtest(crosscor, rand(10, 10, 3, 2), randn(Float64, 2, 2, 3, 2))
+@test gradtest(crosscor, rand(10, 10, 10, 3, 2), randn(Float64, 2, 2, 2, 3, 2))
 
 @test gradtest(∇conv_data, rand(10, 3, 2), randn(Float64, 2, 2, 3))
 @test gradtest(∇conv_data, rand(10, 10, 3, 2), randn(Float64,2, 2, 2, 3))

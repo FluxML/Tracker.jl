@@ -375,7 +375,7 @@ x::TrackedVector  * y::TrackedVector  = track(*, x, y)
 # NNlib
 
 using NNlib
-import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, ∇conv_data, depthwiseconv, maxpool, meanpool
+import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, crosscor, ∇conv_data, depthwiseconv, maxpool, meanpool
 
 softmax(xs::TrackedArray) = track(softmax, xs)
 
@@ -404,6 +404,16 @@ conv(x::TrackedArray,  w::AbstractArray; kw...) = track(conv, x, w; kw...)
     Δ -> nobacksies(:conv,
       (NNlib.∇conv_data(data.((Δ, w))...; size=size(x), kw...),
        NNlib.∇conv_filter(data.((Δ, x))...; size=size(w), kw...)))
+
+crosscor(x::TrackedArray,  w::TrackedArray;  kw...) = track(crosscor, x, w; kw...)
+crosscor(x::AbstractArray, w::TrackedArray;  kw...) = track(crosscor, x, w; kw...)
+crosscor(x::TrackedArray,  w::AbstractArray; kw...) = track(crosscor, x, w; kw...)
+
+@grad crosscor(x, w; kw...) =
+crosscor(data(x), data(w); kw...),
+    Δ -> nobacksies(:crosscor,
+      (NNlib.∇conv_data(data.((Δ, w))...; size=size(x), flipkernel = 1, kw...),
+       NNlib.∇conv_filter(data.((Δ, x))...; size=size(w), flipkernel = 1, kw...)))
 
 ∇conv_data(x::TrackedArray,  w::TrackedArray;  kw...) = track(∇conv_data, x, w; kw...)
 ∇conv_data(x::AbstractArray, w::TrackedArray;  kw...) = track(∇conv_data, x, w; kw...)
