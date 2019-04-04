@@ -240,6 +240,13 @@ Base.permutedims(xs::TrackedArray, perm) = track(permutedims, xs, perm)
 Base.PermutedDimsArray(xs::TrackedArray, perm) = track(PermutedDimsArray, xs, perm)
 @grad PermutedDimsArray(xs, perm) = PermutedDimsArray(data(xs), perm), Δ -> (PermutedDimsArray(Δ, invperm(perm)),nothing)
 
+Base.reverse(xs::TrackedArray; dims) = track(reverse, xs, dims = dims)
+@grad reverse(xs; dims) = reverse(data(xs), dims = dims), Δ -> (reverse(Δ, dims = dims), nothing)
+Base.reverse(xs::TrackedVector) = track(reverse, xs)
+@grad reverse(xs) = reverse(data(xs)), Δ -> (reverse(Δ),)
+Base.reverse(xs::TrackedVector, start, stop) = track(reverse, xs, start, stop)
+@grad reverse(xs, start, stop) = reverse(data(xs), start, stop), Δ -> (reverse(Δ, start, stop), nothing, nothing)
+
 function _kron(mat1::AbstractMatrix,mat2::AbstractMatrix)
     m1, n1 = size(mat1)
     mat1_rsh = reshape(mat1,(1,m1,1,n1))
