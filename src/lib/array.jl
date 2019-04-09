@@ -60,6 +60,8 @@ end
 
 Base.copy(x::TrackedArray) = x
 
+collect(xs::TrackedArray) = xs
+
 Base.setindex!(xs::TrackedArray, v, i...) =
   error("Can't differentiate `setindex!`")
 

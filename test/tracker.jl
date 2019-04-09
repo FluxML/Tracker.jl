@@ -287,6 +287,8 @@ Tracker.back!(b)
     xy = Tracker.collect([x, y])
     xy[1]*xy[2]
   end == (3, 2)
+
+  gradient(x -> sum(Tracker.collect(x)), [1, 2, 3])[1] == [1, 1, 1]
 end
 
 # Gradient Hooks
