@@ -245,7 +245,7 @@ Base.PermutedDimsArray(xs::TrackedArray, perm) = track(PermutedDimsArray, xs, pe
 Base.reverse(xs::TrackedArray; dims) = track(reverse, xs, dims = dims)
 @grad reverse(xs; dims) = reverse(data(xs), dims = dims), Δ -> (reverse(Δ, dims = dims), nothing)
 Base.reverse(xs::TrackedVector) = track(reverse, xs)
-@grad reverse(xs) = reverse(data(xs)), Δ -> (reverse(Δ),)
+@grad reverse(xs::TrackedVector) = reverse(data(xs)), Δ -> (reverse(Δ),)
 Base.reverse(xs::TrackedVector, start, stop) = track(reverse, xs, start, stop)
 @grad reverse(xs, start, stop) = reverse(data(xs), start, stop), Δ -> (reverse(Δ, start, stop), nothing, nothing)
 
