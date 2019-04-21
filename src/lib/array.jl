@@ -435,7 +435,7 @@ meanpool(x::TrackedArray, k; kw...) = track(meanpool, x, k; kw...)
 
 @grad function meanpool(x, k; kw...)
   y = meanpool(data(x), k; kw...)
-  y, Δ -> (nobacksies(:maxpool, NNlib.∇meanpool(data.((Δ, y, x))..., k; kw...)), nothing)
+  y, Δ -> (nobacksies(:meanpool, NNlib.∇meanpool(data.((Δ, y, x))..., k; kw...)), nothing)
 end
 
 # Broadcasting
