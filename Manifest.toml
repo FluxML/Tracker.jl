@@ -100,12 +100,10 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[NNlib]]
-deps = ["Libdl", "LinearAlgebra", "Requires", "Statistics", "Test", "TimerOutputs"]
-git-tree-sha1 = "93aa81d4559ec917a919134d08fb42369c545522"
-repo-rev = "master"
-repo-url = "https://github.com/FluxML/NNlib.jl.git"
+deps = ["Libdl", "LinearAlgebra", "Requires", "Statistics", "TimerOutputs"]
+git-tree-sha1 = "0c667371391fc6bb31f7f12f96a56a17098b3de8"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-version = "0.5.0+"
+version = "0.6.0"
 
 [[NaNMath]]
 deps = ["Compat"]
