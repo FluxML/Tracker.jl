@@ -325,9 +325,9 @@ Base.minimum(xs::TrackedArray; dims = :) = track(minimum, xs, dims = dims)
 
 import LinearAlgebra: dot
 
-dot(xs::TrackedVector, ys::TrackedVector) = track(dot, xs, ys)
-dot(xs::AbstractVector, ys::TrackedVector) = track(dot, xs, ys)
-dot(xs::TrackedVector, ys::AbstractVector) = track(dot, xs, ys)
+dot(xs::TrackedArray, ys::TrackedArray) = track(dot, xs, ys)
+dot(xs::AbstractArray, ys::TrackedArray) = track(dot, xs, ys)
+dot(xs::TrackedArray, ys::AbstractArray) = track(dot, xs, ys)
 
 @grad dot(xs, ys) = dot(data(xs), data(ys)), Δ -> (Δ .* ys, Δ .* xs)
 
