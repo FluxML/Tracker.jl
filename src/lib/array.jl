@@ -100,11 +100,11 @@ end
 Base.getindex(xs::TrackedArray, i...; kwargs...) = track(getindex, xs, i...; kwargs...)
 
 @grad function getindex(xs::AbstractArray, i...; kwargs...)
-  data(xs)[i...; kwargs...], function (Δ)
+  getindex(data(xs), i...; kwargs...), function (Δ)
     Δ′ = zero(xs)
-    Δ′[i...] = data(Δ)
-    (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
-  end
+    setindex!(Δ′, data(Δ), i...; kwargs...)
+    (nobacksies(:getindex, Δ′), map(_->nothing, i)...)  # TODO: put kwargs here
+end
 end
 
 Base.view(x::TrackedArray, inds...; kwargs...) = track(Base.view, x, inds...; kwargs...)
@@ -112,9 +112,9 @@ Base.view(x::TrackedArray, inds...; kwargs...) = track(Base.view, x, inds...; kw
 @grad function view(x::AbstractArray, inds...; kwargs...)
     view(data(x), inds...; kwargs...), function (Δ)
         grad_output = zero(x)
-        subgrad = view(grad_output, inds...)
+        subgrad = view(grad_output, inds...; kwargs...)
         subgrad[:] = data(Δ)
-        (nobacksies(:view, grad_output), map(_->nothing, inds)...)
+        (nobacksies(:view, grad_output), map(_->nothing, inds)...)  # TODO: put kwargs here
     end
 end
 
