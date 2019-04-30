@@ -500,7 +500,7 @@ broadcast_rebuild(bc::Broadcasted) =
 
 preprocess(x) = x
 
-function Base.Broadcast.materialize(bc::Broadcasted{TrackedStyle})
+function Base.copy(bc::Broadcasted{TrackedStyle})
   bc1 = Broadcast.flatten(bc)
   bc2 = Broadcast.flatten(broadcast_rebuild(bc))
   ∇broadcast(bc2.f, bc1.args...)
