@@ -122,6 +122,11 @@ end
 
 end
 
+@testset "getindex (Nabla.jl - #139)" begin
+  z = [2, 3, 3]
+  @test gradtest(x->x[z], randn(MersenneTwister(123456), 3))
+end
+
 @test gradtest(x -> permutedims(x, [3,1,2]), rand(4,5,6))
 @test gradtest(x -> PermutedDimsArray(x, [3,1,2]), rand(4,5,6))
 
