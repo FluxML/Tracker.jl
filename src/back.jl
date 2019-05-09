@@ -171,18 +171,10 @@ gradient(f, xs...; nest = false) =
 
 Calculate the output jacobian `J = d/dx m(x)` such that each row `i` of `J` corresponds to the gradient `J[i,:] = ∇ₓ(m(x)[i])`
 """
-function jacobian(m,x)
-    xp = param(x)
-    y  = m(xp)
-    k  = length(y)
-    n  = length(x)
-    J  = Matrix{eltype(x)}(undef,k,n)
-    for i = 1:k
-        back!(y[i], once = false) # Populate gradient accumulator
-        J[i,:] = xp.grad
-        xp.grad .= 0 # Reset gradient accumulator
-    end
-    J
+function jacobian(f, x::AbstractVector)
+  y::AbstractVector, back = forward(f, x)
+  ȳ(i) = [i == j for j = 1:length(y)]
+  vcat([transpose(back(ȳ(i))[1]) for i = 1:length(y)]...)
 end
 
 hessian(f, x) = jacobian(x -> gradient(f, x, nest=true)[1], x)
