@@ -239,9 +239,9 @@ end
   end
 end
 
-Base.reshape(xs::TrackedArray, dims::Union{Colon,Int64}...) = reshape(xs, dims)
-Base.reshape(xs::TrackedArray, dims::Tuple{Vararg{Union{Int64,Colon}}}) = reshape(xs, Base._reshape_uncolon(xs, dims))
-Base.reshape(xs::TrackedArray, dims::Tuple{Vararg{Int64}}) = track(reshape, xs, dims)
+Base.reshape(xs::TrackedArray, dims::Union{Colon,Int}...) = reshape(xs, dims)
+Base.reshape(xs::TrackedArray, dims::Tuple{Vararg{Union{Int,Colon}}}) = reshape(xs, Base._reshape_uncolon(xs, dims))
+Base.reshape(xs::TrackedArray, dims::Tuple{Vararg{Int}}) = track(reshape, xs, dims)
 
 @grad reshape(xs, dims) = reshape(data(xs), dims), Δ -> (reshape(Δ, size(xs)),nothing)
 
