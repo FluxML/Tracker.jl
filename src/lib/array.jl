@@ -62,7 +62,7 @@ Base.copy(x::TrackedArray) = x
 
 collect(xs::TrackedArray) = xs
 
-Base.setindex!(xs::TrackedArray, v, i...) =
+Base.setindex!(xs::TrackedArray, v, i...; kwargs...) =
   error("Can't differentiate `setindex!`")
 
 back!(::TrackedArray) = error("Value is not scalar; use `back!(sum(x))` or `back!(x, Δ)`")
@@ -97,22 +97,22 @@ end
 
 # Array Stdlib
 
-Base.getindex(xs::TrackedArray, i...) = track(getindex, xs, i...)
+Base.getindex(xs::TrackedArray, i...; kwargs...) = track(getindex, xs, i...; kwargs...)
 
-@grad function getindex(xs::AbstractArray, i...)
-  data(xs)[i...], function (Δ)
-    Δ′ = zero(xs)
-    Δ′[i...] = data(Δ)
-    (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
-  end
+@grad function getindex(xs::AbstractArray, i...; kwargs...)
+  getindex(data(xs), i...; kwargs...), function (Δ)
+        Δ′ = zero(xs)
+        setindex!(Δ′, data(Δ), i...; kwargs...)
+        (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
+    end
 end
 
-Base.view(x::TrackedArray, inds...) = track(Base.view, x, inds...)
+Base.view(x::TrackedArray, inds...; kwargs...) = track(Base.view, x, inds...; kwargs...)
 
-@grad function view(x::AbstractArray, inds...)
-    view(data(x), inds...), function (Δ)
+@grad function view(x::AbstractArray, inds...; kwargs...)
+    view(data(x), inds...; kwargs...), function (Δ)
         grad_output = zero(x)
-        subgrad = view(grad_output, inds...)
+        subgrad = view(grad_output, inds...; kwargs...)
         subgrad[:] = data(Δ)
         (nobacksies(:view, grad_output), map(_->nothing, inds)...)
     end
