@@ -183,7 +183,8 @@ end
   vcat(data.(xs)...), function (Δ)
     start = 0
     Δs = [begin
-      i = map(_ -> :, size(xsi)) |> Base.tail
+      x = map(_ -> :, size(xsi))
+      i = isempty(x) ? x : Base.tail(x)
       d = Δ[start+1:start+size(xsi,1), i...]
       start += size(xsi, 1)
       d
