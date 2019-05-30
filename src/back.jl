@@ -173,8 +173,9 @@ Calculate the output jacobian `J = d/dx m(x)` such that each row `i` of `J` corr
 """
 function jacobian(f, x::AbstractVector)
   y::AbstractVector, back = forward(f, x)
+  z = float(zero(eltype(data(y))))
   # Using broadcasting so that output of `ȳ` is a GPU array if `y` is so:
-  ȳ(i) = ((j, _) -> i == j).(1:length(y), y)
+  ȳ(i) = ((j, _) -> i == j).(1:length(y), y) .+ z
   vcat([transpose(back(ȳ(i))[1]) for i = 1:length(y)]...)
 end
 
