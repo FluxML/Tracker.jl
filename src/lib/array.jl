@@ -345,8 +345,8 @@ Statistics.std(x::TrackedArray; dims = :, mean = Statistics.mean(x, dims = dims)
 _std(x::TrackedArray, mean, dims, corrected) = sqrt.(sum((x .- mean).^2, dims = dims) ./ (mapreduce(i -> size(x,i),*, dims) - corrected))
 _std(x::TrackedArray, mean, ::Colon, corrected) = sqrt.(sum((x .- mean).^2) ./ (length(x) - corrected))
 
-LinearAlgebra.norm(x::TrackedArray, p::Real = 2) =
-  sum(abs.(x).^p .+ eps(0f0))^(1/p) # avoid d(sqrt(x))/dx == Inf at 0
+LinearAlgebra.norm(x::TrackedArray{T}, p::Real = 2) where T =
+  (sum(abs.(x).^p) + eps(T))^(oneunit(T) / p) # avoid d(sqrt(x))/dx == Inf at 0
 
 @grad mean(xs; dims = :) = mean(data(xs), dims=dims), Δ -> (_backmean(xs,Δ,dims),)
 _backmean(xs, Δ, ::Colon) = zero(xs) .+ Δ ./ length(xs)

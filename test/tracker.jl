@@ -189,6 +189,8 @@ end
 @test gradtest(dot, rand(5), rand(5))
 
 @test gradtest(norm, rand(5))
+@test gradtest(norm, zeros(5))
+@test norm(TrackedArray(rand(Float32, 5))) isa TrackedReal{Float32}
 
 @test gradtest(rand(5)) do x
   y = x.^2
