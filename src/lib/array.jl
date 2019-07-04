@@ -545,3 +545,7 @@ if VERSION < v"1.1.0-DEV.548"
     end
   end
 end
+
+# Ambiguity fix
+Base.:*(x::Transpose{T,Array{T,N1}},y::Flux.Tracker.TrackedArray{T2,N2,A}) where {T,T2,N1,N2,A} = transpose(Flux.Tracker.TrackedArray(x.parent))*y
+Base.:*(x::Transpose{T,Array{T,N1}},y::Flux.Tracker.TrackedArray{T2,1,A}) where {T,T2, N1, N2, A} = transpose(Flux.Tracker.TrackedArray(x.parent))*y
