@@ -387,6 +387,19 @@ x::TrackedVector  * y::AbstractVector = track(*, x, y)
 x::AbstractVector * y::TrackedVector  = track(*, x, y)
 x::TrackedVector  * y::TrackedVector  = track(*, x, y)
 
+# Ambiguity fixes
+Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Transpose{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractMatrix{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Transpose{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Transpose{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Transpose{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
 @grad a::AbstractMatrix * b::AbstractVecOrMat =
   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
 
@@ -545,7 +558,3 @@ if VERSION < v"1.1.0-DEV.548"
     end
   end
 end
-
-# Ambiguity fix
-Base.:*(x::Transpose{T,Array{T,N1}},y::Flux.Tracker.TrackedArray{T2,N2,A}) where {T,T2,N1,N2,A} = transpose(Flux.Tracker.TrackedArray(x.parent))*y
-Base.:*(x::Transpose{T,Array{T,N1}},y::Flux.Tracker.TrackedArray{T2,1,A}) where {T,T2, N1, N2, A} = transpose(Flux.Tracker.TrackedArray(x.parent))*y
