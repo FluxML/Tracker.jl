@@ -202,23 +202,77 @@ end
   x = Tracker.TrackedArray(rand(5,5))
   @test w*x   isa TrackedArray
   @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
   @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
   @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
+
   x = Tracker.TrackedArray(rand(5))
   @test w*x   isa TrackedArray
   @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
   w = Tracker.TrackedArray(rand(5))
   x = Tracker.TrackedArray(rand(5))
   @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
   w = Tracker.TrackedArray(rand(5))
+  x = Tracker.TrackedArray(rand(5,5))
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
+
+  w = Tracker.TrackedArray(rand(5,5))
+  x = rand(5,5)
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
+  @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
+  x = rand(5)
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  w = Tracker.TrackedArray(rand(5))
+  x = rand(5)
+  @test_broken w*x'  isa TrackedArray
+  @test_broken w*transpose(x)  isa TrackedArray
+  w = Tracker.TrackedArray(rand(5))
+  x = rand(5,5)
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
+
+  w = rand(5,5)
   x = Tracker.TrackedArray(rand(5,5))
   @test w*x   isa TrackedArray
   @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
   @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
   @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
+  x = Tracker.TrackedArray(rand(5))
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  w = rand(5)
+  x = Tracker.TrackedArray(rand(5))
+  @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
+  w = rand(5)
+  x = Tracker.TrackedArray(rand(5,5))
+  @test w'*x  isa TrackedArray
+  @test transpose(w)*x  isa TrackedArray
+  @test w'*x' isa TrackedArray
+  @test transpose(w)*transpose(x) isa TrackedArray
 end
 
-@testset "conv" begin
+@testset "conv" beginW
   for spatial_rank in (1, 2, 3)
     x = rand(repeat([10], spatial_rank)..., 3, 2)
     w = rand(repeat([3], spatial_rank)..., 3, 3)
