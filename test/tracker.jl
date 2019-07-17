@@ -197,6 +197,27 @@ end
   2y + x
 end
 
+@testset "transpose" begin
+  w = Tracker.TrackedArray(rand(5,5))
+  x = Tracker.TrackedArray(rand(5,5))
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  @test w*x'  isa TrackedArray
+  @test w'*x' isa TrackedArray
+  x = Tracker.TrackedArray(rand(5))
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  w = Tracker.TrackedArray(rand(5))
+  x = Tracker.TrackedArray(rand(5))
+  @test w*x'  isa TrackedArray
+  w = Tracker.TrackedArray(rand(5))
+  x = Tracker.TrackedArray(rand(5,5))
+  @test w*x   isa TrackedArray
+  @test w'*x  isa TrackedArray
+  @test w*x'  isa TrackedArray
+  @test w'*x' isa TrackedArray
+end
+
 @testset "conv" begin
   for spatial_rank in (1, 2, 3)
     x = rand(repeat([10], spatial_rank)..., 3, 2)
