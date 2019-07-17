@@ -272,7 +272,7 @@ end
   @test transpose(w)*transpose(x) isa TrackedArray
 end
 
-@testset "conv" beginW
+@testset "conv" begin
   for spatial_rank in (1, 2, 3)
     x = rand(repeat([10], spatial_rank)..., 3, 2)
     w = rand(repeat([3], spatial_rank)..., 3, 3)
