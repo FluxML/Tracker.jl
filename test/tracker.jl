@@ -238,8 +238,8 @@ end
   @test transpose(w)*x  isa TrackedArray
   w = Tracker.TrackedArray(rand(5))
   x = rand(5)
-  @test_broken w*x'  isa TrackedArray
-  @test_broken w*transpose(x)  isa TrackedArray
+  @test w*x'  isa TrackedArray
+  @test w*transpose(x)  isa TrackedArray
   w = Tracker.TrackedArray(rand(5))
   x = rand(5,5)
   @test w'*x  isa TrackedArray

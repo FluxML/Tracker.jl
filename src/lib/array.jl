@@ -412,7 +412,7 @@ Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractVector{T}}) where {T} = track(*,
 Base.:*(x::Adjoint{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
 Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
 
-@grad a::AbstractMatrix * b::AbstractVecOrMat =
+@grad a::AbstractVecOrMat * b::AbstractVecOrMat =
   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
 
 # NNlib
