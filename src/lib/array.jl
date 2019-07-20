@@ -387,6 +387,31 @@ x::TrackedVector  * y::AbstractVector = track(*, x, y)
 x::AbstractVector * y::TrackedVector  = track(*, x, y)
 x::TrackedVector  * y::TrackedVector  = track(*, x, y)
 
+# Ambiguity fixes
+Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Transpose{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractMatrix{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Transpose{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Transpose{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Transpose{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Transpose{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Adjoint{T,<:AbstractVector{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Adjoint{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Adjoint{T,<:AbstractMatrix{T}},y::TrackedMatrix) where {T} = track(*, x, y)
+Base.:*(x::TrackedMatrix,y::Adjoint{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Adjoint{T,<:AbstractVector{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractVector{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Adjoint{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
+Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
 @grad a::AbstractMatrix * b::AbstractVecOrMat =
   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
 
