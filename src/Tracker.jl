@@ -2,6 +2,7 @@ module Tracker
 
 using MacroTools
 using MacroTools: @q, @forward
+import Printf
 
 import Base: ==
 
