@@ -54,7 +54,9 @@ for f in :[isinf, isnan, isfinite].args
   @eval Base.$f(x::TrackedReal) = Base.$f(data(x))
 end
 
-Base.Printf.fix_dec(x::TrackedReal, n::Int, a...) = Base.Printf.fix_dec(data(x), n, a...)
+using Printf
+
+Printf.fix_dec(x::TrackedReal, n::Int, a...) = Printf.fix_dec(data(x), n, a...)
 
 Base.float(x::TrackedReal) = x
 
