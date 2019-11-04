@@ -72,9 +72,9 @@ using DiffRules, SpecialFunctions, NaNMath
 for (M, f, arity) in DiffRules.diffrules()
   arity == 1 || continue
   @eval begin
-    @grad $M.$f(a::Union{Complex,TrackedComplex}) =
+    @grad $M.$f(a::TrackedComplex) =
       $M.$f(data(a)), Δ -> (Δ * $(DiffRules.diffrule(M, f, :a)),)
-    $M.$f(a::Union{Complex,TrackedComplex}) = track($M.$f, a)
+    $M.$f(a::TrackedComplex) = track($M.$f, a)
   end
 end
 
@@ -84,14 +84,16 @@ for (M, f, arity) in DiffRules.diffrules()
   f = :($M.$f)
   @eval begin
 
-    @grad $f(a::TrackedComplex, b::Union{TrackedComplex,TrackedReal}) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
-    @grad $f(a::Union{TrackedComplex,TrackedReal}, b::TrackedComplex) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
+    @grad $f(a::TrackedComplex, b::TrackedComplex) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
+    @grad $f(a::TrackedComplex, b::TrackedReal) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
+    @grad $f(a::TrackedReal, b::TrackedComplex) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
 
     @grad $f(a::TrackedComplex, b::Union{Complex,Real}) = $f(data(a), b), Δ -> (Δ * $da, _zero(b))
     @grad $f(a::Union{Complex,Real}, b::TrackedComplex) = $f(a, data(b)), Δ -> (_zero(a), Δ * $db)
 
-    $f(a::TrackedComplex, b::Union{TrackedComplex,TrackedReal})  = track($f, a, b)
-    $f(a::Union{TrackedComplex,TrackedReal}, b::TrackedComplex)  = track($f, a, b)
+    $f(a::TrackedComplex, b::TrackedComplex)  = track($f, a, b)
+    $f(a::TrackedComplex, b::TrackedReal)  = track($f, a, b)
+    $f(a::TrackedReal, b::TrackedComplex)  = track($f, a, b)
 
     $f(a::TrackedComplex, b::Union{Complex,Real}) = track($f, a, b)
     $f(a::Union{Complex,Real}, b::TrackedComplex) = track($f, a, b)
@@ -103,7 +105,7 @@ import Base:^
 using ForwardDiff: Dual
 
 ^(a::TrackedComplex, b::Integer) = track(^, a, b)
-(T::Type{<:Complex})(x::Dual) = Dual(T(x.value), map(T, x.partials.values))
+(T::Type{<:Union{Complex,TrackedComplex}})(x::Dual) = Dual(T(x.value), map(T, x.partials.values))
 
 # Array collection
 
