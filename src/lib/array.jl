@@ -32,6 +32,7 @@ TrackedArray(c::Call, x::A, Δ::A) where A <: AbstractArray =
 TrackedArray(x::AbstractArray) = TrackedArray(Call(), x, zero(x))
 
 Base.eltype(x::Type{<:TrackedArray{T}}) where T <: Real = TrackedReal{T}
+Base.eltype(x::Type{<:TrackedArray{T}}) where T <: Complex = TrackedComplex{T}
 
 Base.convert(::Type{T}, x::S) where {T<:TrackedArray,S<:T} = x
 
@@ -171,7 +172,7 @@ end
 
 for i = 0:2, c = combinations([:AbstractArray, :TrackedArray, :Number], i), f = [:hcat, :vcat]
   cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::Union{AbstractArray,Number}...) =
+  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal,TrackedComplex}, xs::Union{AbstractArray,Number}...) =
     track($f, $(cnames...), x, xs...)
 end
 
@@ -522,7 +523,7 @@ using Base.Broadcast: BroadcastStyle, ArrayStyle, Broadcasted, broadcasted
 
 struct TrackedStyle <: BroadcastStyle end
 
-Broadcast.BroadcastStyle(::Type{<:Union{TrackedArray,TrackedReal}}) = TrackedStyle()
+Broadcast.BroadcastStyle(::Type{<:Union{TrackedArray,TrackedReal,TrackedComplex}}) = TrackedStyle()
 Broadcast.BroadcastStyle(::TrackedStyle, ::BroadcastStyle) = TrackedStyle()
 
 # We have to re-build the original broadcast struct to get the appropriate array
