@@ -1,10 +1,9 @@
-mutable struct TrackedComplex{T<:Complex} <: Real
+mutable struct TrackedComplex{T<:Complex} # <: AbstractComplex
   data::T
   tracker::Tracked{T}
 end
 
 TrackedComplex(x::Complex) = TrackedComplex(x, Tracked{typeof(x)}(Call(), zero(x)))
-TrackedComplex(x::Real) = TrackedComplex(x, Tracked{typeof(x)}(Call(), zero(x)))
 
 data(x::TrackedComplex) = x.data
 tracker(x::TrackedComplex) = x.tracker
@@ -35,17 +34,16 @@ Base.copy(x::TrackedComplex) = x
 
 Base.convert(::Type{TrackedComplex{T}}, x::TrackedComplex{T}) where T = x
 
-Base.convert(::Type{TrackedComplex{T}}, x::Complex) where T = TrackedComplex(convert(T, x))
-Base.convert(::Type{TrackedComplex{T}}, x::Real) where T = TrackedComplex(convert(T, x))
+Base.convert(::Type{TrackedComplex{T}}, x::Union{Complex,Real}) where T = TrackedComplex(convert(T, x))
 
 Base.convert(::Type{TrackedComplex{T}}, x::TrackedComplex{S}) where {T,S} =
   error("Not implemented: convert tracked $S to tracked $T")
 
-(T::Type{<:TrackedComplex})(x::Complex) = convert(T, x)
+(T::Type{<:TrackedComplex})(x::Union{Complex,Real}) = convert(T, x)
 
 for op in [:(==), :≈, :<, :(<=)]
-  @eval Base.$op(x::TrackedComplex, y::Complex) = Base.$op(data(x), y)
-  @eval Base.$op(x::Complex, y::TrackedComplex) = Base.$op(x, data(y))
+  @eval Base.$op(x::TrackedComplex, y::Union{Complex,Real}) = Base.$op(data(x), y)
+  @eval Base.$op(x::Union{Complex,Real}, y::TrackedComplex) = Base.$op(x, data(y))
   @eval Base.$op(x::TrackedComplex, y::TrackedComplex) = Base.$op(data(x), data(y))
 end
 
@@ -80,32 +78,34 @@ for (M, f, arity) in DiffRules.diffrules()
   end
 end
 
-
 for (M, f, arity) in DiffRules.diffrules()
   arity == 2 || continue
   da, db = DiffRules.diffrule(M, f, :a, :b)
   f = :($M.$f)
   @eval begin
-    @grad $f(a::TrackedComplex, b::TrackedComplex) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
 
-    @grad $f(a::TrackedComplex, b::Complex) = $f(data(a), b), Δ -> (Δ * $da, _zero(b))
-    @grad $f(a::TrackedComplex, b::Real) = $f(data(a), b), Δ -> (Δ * $da, _zero(b))
+    @grad $f(a::TrackedComplex, b::Union{TrackedComplex,TrackedReal}) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
+    @grad $f(a::Union{TrackedComplex,TrackedReal}, b::TrackedComplex) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
 
-    @grad $f(a::Complex, b::TrackedComplex) = $f(a, data(b)), Δ -> (_zero(a), Δ * $db)
-    @grad $f(a::Real, b::TrackedComplex) = $f(a, data(b)), Δ -> (_zero(a), Δ * $db)
+    @grad $f(a::TrackedComplex, b::Union{Complex,Real}) = $f(data(a), b), Δ -> (Δ * $da, _zero(b))
+    @grad $f(a::Union{Complex,Real}, b::TrackedComplex) = $f(a, data(b)), Δ -> (_zero(a), Δ * $db)
 
-    $f(a::TrackedComplex, b::TrackedComplex)  = track($f, a, b)
+    $f(a::TrackedComplex, b::Union{TrackedComplex,TrackedReal})  = track($f, a, b)
+    $f(a::Union{TrackedComplex,TrackedReal}, b::TrackedComplex)  = track($f, a, b)
 
-    $f(a::TrackedComplex, b::Complex) = track($f, a, b)
-    $f(a::TrackedComplex, b::Real) = track($f, a, b)
-
-    $f(a::Complex, b::TrackedComplex) = track($f, a, b)
-    $f(a::Real, b::TrackedComplex) = track($f, a, b)
+    $f(a::TrackedComplex, b::Union{Complex,Real}) = track($f, a, b)
+    $f(a::Union{Complex,Real}, b::TrackedComplex) = track($f, a, b)
   end
 end
 
-using ForwardDiff: Dual
+# Eliminating ambiguity, Hack for conversions
 import Base:^
+using ForwardDiff: Dual
 
 ^(a::TrackedComplex, b::Integer) = track(^, a, b)
 (T::Type{<:Complex})(x::Dual) = Dual(T(x.value), map(T, x.partials.values))
+
+# Array collection
+
+collectmemaybe(xs::AbstractArray{>:TrackedComplex}) = collect(xs)
+collectmemaybe(xs::AbstractArray{<:TrackedComplex}) = collect(xs)
