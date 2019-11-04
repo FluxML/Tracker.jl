@@ -72,9 +72,9 @@ using DiffRules, SpecialFunctions, NaNMath
 for (M, f, arity) in DiffRules.diffrules()
   arity == 1 || continue
   @eval begin
-    @grad $M.$f(a::Complex) =
+    @grad $M.$f(a::Union{Complex,TrackedComplex}) =
       $M.$f(data(a)), Δ -> (Δ * $(DiffRules.diffrule(M, f, :a)),)
-    $M.$f(a::TrackedComplex) = track($M.$f, a)
+    $M.$f(a::Union{Complex,TrackedComplex}) = track($M.$f, a)
   end
 end
 
