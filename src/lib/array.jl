@@ -499,7 +499,7 @@ unbroadcast(x::Number, Δ) = sum(Δ)
 unbroadcast(x::Base.RefValue, _) = nothing
 
 dual(x, p) = x
-dual(x::Real, p) = Dual(x, p)
+dual(x::Union{Real,Complex}, p) = Dual(x, p)
 
 function partial(f::F, Δ, i, args::Vararg{Any,N}) where {F,N}
   dargs = ntuple(j -> dual(args[j], i==j), Val(N))
@@ -508,7 +508,7 @@ end
 
 @inline function ∇broadcast(f::F, args::Vararg{Any,N}) where {F,N}
   y = broadcast(f, data.(args)...)
-  eltype(y) <: Real || return y
+  eltype(y) <: Union{Real,Complex} || return y
   eltype(y) == Bool && return y
   function back(Δ)
     Δargs = ntuple(i -> partial.(f, Δ, i, args...), Val(N))
