@@ -97,34 +97,29 @@ end
 
 # Array Stdlib
 
-Base.getindex(xs::TrackedArray, i...; kwargs...) = track(getindex, xs, i...; kwargs...)
+Base.getindex(xs::TrackedArray, inds...) = track(getindex, xs, inds...)
 
-@grad function getindex(xs::AbstractArray, i...; kwargs...)
-  getindex(data(xs), i...; kwargs...), function (Δ)
-        Δ′ = zero(xs)
-        copyto!(view(Δ′, i...; kwargs...), data(Δ))
-        (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
-    end
-end
+Base.view(x::TrackedArray, inds...) = track(view, x, inds...)
 
-@grad function getindex(xs::AbstractArray, i::Array...)
-  data(xs)[i...], function (Δ)
-    Δ′ = zero(xs)
-    copyto!(view(Δ′, i...), data(Δ))
-    (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
+@grad getindex(x::AbstractArray, inds...) = data(x)[inds...], Δ ->
+    (nobacksies(:getindex, ∇getindex(data(Δ), x, inds)), map(_->nothing, inds)...)
+
+@grad view(x::AbstractArray, inds...) = view(data(x), inds...), Δ ->
+    (nobacksies(:view, ∇getindex(data(Δ), x, inds)), map(_->nothing, inds)...)
+
+function ∇getindex(dy, x::AbstractArray, inds)
+  if inds isa  NTuple{<:Any,Integer}
+    dx = _zero(x, typeof(dy))
+    dx[inds...] = dy
+  else
+    dx = _zero(x, eltype(dy))
+    @views dx[inds...] .+= dy
   end
+  dx
 end
 
-Base.view(x::TrackedArray, inds...; kwargs...) = track(Base.view, x, inds...; kwargs...)
-
-@grad function view(x::AbstractArray, inds...; kwargs...)
-    view(data(x), inds...; kwargs...), function (Δ)
-        grad_output = zero(x)
-        subgrad = view(grad_output, inds...; kwargs...)
-        subgrad[:] = data(Δ)
-        (nobacksies(:view, grad_output), map(_->nothing, inds)...)
-    end
-end
+_zero(xs::AbstractArray{<:Number}, T=float(eltype(xs))) = fill!(similar(xs, T), false)
+_zero(xs::AbstractArray, T=Any) = Union{Nothing, T}[nothing for x in xs]
 
 Base.:-(xs::TrackedArray) = track(-, xs)
 

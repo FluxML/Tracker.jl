@@ -34,10 +34,6 @@ gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @test gradtest(logdet, map((x) -> x*x', (rand(4, 4),))[1])
 @test gradtest((x) -> logabsdet(x)[1], (4, 4))
 
-@testset "indexing & slicing" begin
-  gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
-end
-
 function promotiontest(f, A, B, C)
   r0 = f(A, B, C)
   r1 = f(param(A), B, C)
@@ -122,7 +118,30 @@ end
 
 end
 
-@testset "getindex (Nabla.jl - #139)" begin
+@testset "view" begin
+  @test gradtest(x -> view(x,:,2,:), (3,4,5))
+  @test gradtest(x -> view(x,1:2,3:4), (3,4))
+  @test gradtest(x -> view(x,1,2), (3,4))
+  @test gradtest(x -> view(x,:,[1,2,2]), (3,4))
+
+  # https://github.com/FluxML/Zygote.jl/issues/272
+  g(x) = view(x,1:2)[1]
+  @test gradient(g, ones(3)) == ([1,0,0],)
+end
+
+@testset "getindex" begin
+  @test gradtest(x -> x[:,2,:], (3,4,5))
+  @test gradtest(x -> x[1:2,3:4], (3,4))
+  @test gradtest(x -> x[1,2], (3,4))
+
+  # https://discourse.julialang.org/t/flux-unable-to-differentiate-an-embedding-layer/
+  imat = [1 2; 3 4]
+  @test gradtest(x -> x[:,imat], (3,4))
+  @test gradtest(x -> x[:,[1,2,2]], (3,4))
+  irep = [1 2; 2 2]
+  @test gradtest(x -> x[1,irep], (3,4))
+
+  # "getindex (Nabla.jl - #139)"
   z = [2, 3, 3]
   @test gradtest(x->x[z], randn(MersenneTwister(123456), 3))
 end
