@@ -6,12 +6,12 @@ import LinearAlgebra: inv, det, logdet, logabsdet, \, /
 using Statistics
 using LinearAlgebra: Transpose, Adjoint, diagm, diag
 
-struct TrackedArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
+struct TrackedArray{T,N,A,B<:AbstractArray{T,N}} <: AbstractArray{T,N}
   tracker::Tracked{A}
-  data::A
+  data::B
   grad::A
-  TrackedArray{T,N,A}(t::Tracked{A}, data::A) where {T,N,A} = new(t, data)
-  TrackedArray{T,N,A}(t::Tracked{A}, data::A, grad::A) where {T,N,A} = new(t, data, grad)
+  TrackedArray{T,N,A,B}(t::Tracked{A}, data::B) where {T,N,A,B} = new(t, data)
+  TrackedArray{T,N,A,B}(t::Tracked{A}, data::B, grad::A) where {T,N,A,B} = new(t, data, grad)
 end
 
 data(x::TrackedArray) = x.data
@@ -23,11 +23,14 @@ TrackedVecOrMat{T,A} = Union{TrackedVector{T,A},TrackedMatrix{T,A}}
 
 track(c::Call, x::AbstractArray) = TrackedArray(c, x)
 
-TrackedArray(c::Call, x::A) where A <: AbstractArray =
-  TrackedArray{eltype(A),ndims(A),A}(Tracked{A}(c), x)
+TrackedArray(c::Call, x::A) where A <: AbstractArray = 
+  TrackedArray{eltype(A),ndims(A),A,A}(Tracked{A}(c), x)
+
+TrackedArray(c::Call, x::A) where A <: Union{SubArray, Transpose, Adjoint, PermutedDimsArray} = 
+  TrackedArray{eltype(A),ndims(A),Any,A}(Tracked{Any}(c), x)
 
 TrackedArray(c::Call, x::A, Δ::A) where A <: AbstractArray =
-  TrackedArray{eltype(A),ndims(A),A}(Tracked{A}(c, Δ), x, Δ)
+  TrackedArray{eltype(A),ndims(A),A,A}(Tracked{A}(c, Δ), x, Δ)
 
 TrackedArray(x::AbstractArray) = TrackedArray(Call(), x, zero(x))
 

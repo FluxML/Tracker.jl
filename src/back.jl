@@ -14,51 +14,58 @@ init_grad(x) = zero(x)
 zero_grad!(x) = zero(x)
 zero_grad!(x::AbstractArray) = (x .= 0)
 
-scan(c::Call) = foreach(scan, c.args)
-
-function scan(x::Tracked)
-  x.isleaf && return
-  ref = x.ref += 1
-  if ref == 1
-    scan(x.f)
-    isdefined(x, :grad) && (x.grad = zero_grad!(x.grad))
+function _walk(queue, seen, c::Call)
+  foreach(c.args) do x
+    x === nothing && return
+    id = objectid(x)
+    if id ∉ seen
+      push!(seen, id)
+      pushfirst!(queue, x)
+    end
+    return
   end
-  return
 end
 
-function scan(x)
-  istracked(x) && scan(tracker(x))
-  return
+function walk(f, x::Tracked; once = true)
+  queue = Tracked[x]
+  seen = Set{UInt64}()
+  while !isempty(queue)
+    x = pop!(queue)
+    f(x)
+    _walk(queue, seen, x.f)
+    once && !x.isleaf && (x.f = Call(missing, ()))
+  end
 end
-
-function back_(c::Call, Δ, once)
+  
+function back_(c::Call, Δ)
   Δs = c.func(Δ)
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
-  foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
+  foreach((x, d) -> back_(x, d), c.args, data.(Δs))
 end
 
-back_(::Call{Nothing}, Δ, once) = nothing
-back_(::Call{Missing}, Δ, once) = error("`back!` was already used")
+back_(::Call{Nothing}, Δ) = nothing
+back_(::Call{Missing}, Δ) = error("`back!` was already used")
 
 accum!(x, Δ) = x .+ Δ
 accum!(x::AbstractArray, Δ) = (x .+= Δ)
 
+function back_(x::Tracked, Δ)
+    if isdefined(x, :grad)
+      x.grad = accum!(x.grad, Δ)
+    else
+      x.grad = Δ
+    end
+    return
+end
+
+back_(::Nothing, Δ) = return
+
 function back(x::Tracked, Δ, once)
-  x.isleaf && (x.grad = accum!(x.grad, Δ); return)
-  ref = x.ref -= 1
-  grad = if isdefined(x, :grad)
-    x.grad = accum!(x.grad, Δ)
-  elseif ref > 0
-    x.grad = Δ
-  else
-    Δ
-  end
-  if ref == 0
-    back_(x.f, grad, once)
-    once && !x.isleaf && (x.f = Call(missing, ()))
-  end
-  return
+    back_(x, Δ)
+    walk(x, once = once) do x
+      back_(x.f, x.grad)
+    end
 end
 
 back(::Nothing, Δ, once) = return
@@ -73,7 +80,6 @@ back(::Nothing, Δ, once) = return
 
 function back!(x, Δ; once = true)
   istracked(x) || return
-  scan(x)
   back(tracker(x), Δ, once)
   return
 end
@@ -115,16 +121,19 @@ end
 
 back_(g::Grads, ::Call{Nothing}, Δ) = nothing
 
-function back(g::Grads, x::Tracked, Δ)
+function back_(g::Grads, x::Tracked, Δ)
   x.isleaf && (accum!(g, x, Δ); return)
-  ref = x.ref -= 1
-  if ref > 0 || haskey(g, x)
-    accum!(g, x, Δ)
-    ref == 0 && back_(g, x.f, g[x])
-  else
-    ref == 0 && back_(g, x.f, Δ)
-  end
+  accum!(g, x, Δ)
   return
+end
+
+back_(g::Grads, ::Nothing, Δ) = return
+
+function back(g::Grads, x::Tracked, Δ)
+  back_(g, x, Δ)
+  walk(x, once = false) do x
+    back_(g, x.f, g[x])
+  end
 end
 
 back(::Grads, ::Nothing, _) = return
@@ -136,7 +145,6 @@ function forward(f, ps::Params)
   y, function (Δ)
     g = Grads(ps)
     if istracked(y)
-      scan(y)
       back(g, tracker(y), Δ)
     end
     return g
@@ -168,7 +176,7 @@ gradient(f, xs...; nest = false) =
 
 """
     J = jacobian(m,x)
-
+    
 Calculate the output jacobian `J = d/dx m(x)` such that each row `i` of `J` corresponds to the gradient `J[i,:] = ∇ₓ(m(x)[i])`
 """
 function jacobian(f, x::AbstractVector)
