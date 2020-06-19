@@ -144,7 +144,11 @@ function collect(xs)
   track(Call(collect, (tracker.(xs),)), data.(xs))
 end
 
-function back_(c::Call{typeof(collect)}, Δ)
+function back_(c::Call{typeof(collect)}, Δ, seen)
+  foreach(c.args[1]) do x
+    isdefined(x, :grad) || return
+    objectid(x) ∉ seen && zero_grad!(x.grad)
+  end
   foreach((x, d) -> back_(x, d), c.args[1], data(Δ))
 end
 

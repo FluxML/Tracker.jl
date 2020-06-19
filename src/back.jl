@@ -26,26 +26,29 @@ function _walk(queue, seen, c::Call)
   end
 end
 
-function walk(f, x::Tracked; once = true)
+function walk(f, x::Tracked, seen = Set{UInt64}(); once = true)
   queue = Tracked[x]
-  seen = Set{UInt64}()
   while !isempty(queue)
     x = pop!(queue)
-    f(x)
+    f(x, seen)
     _walk(queue, seen, x.f)
     once && !x.isleaf && (x.f = Call(missing, ()))
   end
 end
   
-function back_(c::Call, Δ)
+function back_(c::Call, Δ, seen)
   Δs = c.func(Δ)
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
+  foreach(c.args) do x
+    isdefined(x, :grad) || return
+    objectid(x) ∉ seen && zero_grad!(x.grad)
+  end
   foreach((x, d) -> back_(x, d), c.args, data.(Δs))
 end
 
-back_(::Call{Nothing}, Δ) = nothing
-back_(::Call{Missing}, Δ) = error("`back!` was already used")
+back_(::Call{Nothing}, Δ, seen) = nothing
+back_(::Call{Missing}, Δ, seen) = error("`back!` was already used")
 
 accum!(x, Δ) = x .+ Δ
 accum!(x::AbstractArray, Δ) = (x .+= Δ)
@@ -62,9 +65,13 @@ end
 back_(::Nothing, Δ) = return
 
 function back(x::Tracked, Δ, once)
+    seen = Set{UInt64}(objectid(x))
+    if isdefined(x, :grad)
+      x.grad = zero_grad!(x.grad)
+    end
     back_(x, Δ)
-    walk(x, once = once) do x
-      back_(x.f, x.grad)
+    walk(x, seen, once = once) do x, seen
+      back_(x.f, x.grad, seen)
     end
 end
 
@@ -116,7 +123,7 @@ function back_(g::Grads, c::Call, Δ)
   Δs = c.func(Δ)
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
-  foreach((x, Δ) -> back(g, x, Δ), c.args, Δs)
+  foreach((x, Δ) -> back_(g, x, Δ), c.args, Δs)
 end
 
 back_(g::Grads, ::Call{Nothing}, Δ) = nothing
@@ -131,7 +138,7 @@ back_(g::Grads, ::Nothing, Δ) = return
 
 function back(g::Grads, x::Tracked, Δ)
   back_(g, x, Δ)
-  walk(x, once = false) do x
+  walk(x, once = false) do x, seen
     back_(g, x.f, g[x])
   end
 end
