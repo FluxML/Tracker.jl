@@ -144,16 +144,24 @@ function collect(xs)
   track(Call(collect, (tracker.(xs),)), data.(xs))
 end
 
-function scan(c::Call{typeof(collect)})
-  foreach(scan, c.args[1])
-end
-
-function back_(c::Call{typeof(collect)}, Δ, once)
-  foreach((x, d) -> back(x, d, once), c.args[1], data(Δ))
+function back_(c::Call{typeof(collect)}, Δ)
+  foreach((x, d) -> back_(x, d), c.args[1], data(Δ))
 end
 
 function back_(g::Grads, c::Call{typeof(collect)}, Δ)
-  foreach((x, Δ) -> back(g, x, Δ), c.args[1], Δ)
+  foreach((x, Δ) -> back_(g, x, Δ), c.args[1], Δ)
+end
+
+function _walk(queue, seen, c::Call{typeof(collect)})
+  foreach(c.args[1]) do x
+    x === nothing && return
+    id = objectid(x)
+    if id ∉ seen
+      push!(seen, id)
+      pushfirst!(queue, x)
+    end
+    return
+  end
 end
 
 collectmemaybe(xs::AbstractArray{>:TrackedReal}) = collect(xs)
