@@ -429,7 +429,7 @@ end
   @test back([1, 1]) == (32,)
 end
 
-@testset "Long Recursions" begin
+@testset "Long Recurrences" begin
   @test Tracker.gradient(rand(10000)) do x
     s = 0.0
     for i in 1:length(x)
