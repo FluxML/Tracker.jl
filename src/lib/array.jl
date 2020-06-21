@@ -4,7 +4,7 @@ import LinearAlgebra
 import LinearAlgebra: inv, det, logdet, logabsdet, \, /
 
 using Statistics
-using LinearAlgebra: Transpose, Adjoint, diagm, diag
+using LinearAlgebra: Transpose, Adjoint, diagm, diag, UpperTriangular, LowerTriangular
 
 struct TrackedArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
   tracker::Tracked{A}
@@ -272,6 +272,17 @@ Base.kron(a::TrackedMatrix, b::TrackedMatrix)  = _kron(a, b)
 Base.kron(a::TrackedMatrix, b::AbstractMatrix) = _kron(a, b)
 Base.kron(a::AbstractMatrix, b::TrackedMatrix) = _kron(a, b)
 
+LinearAlgebra.UpperTriangular(a::TrackedMatrix) = track(UpperTriangular, a)
+
+@grad function UpperTriangular(a)
+  return UpperTriangular(data(a)), Δ -> (UpperTriangular(Δ),)
+end
+
+LinearAlgebra.LowerTriangular(a::TrackedMatrix) = track(LowerTriangular, a)
+
+@grad function LowerTriangular(a)
+  return LowerTriangular(data(a)), Δ -> (LowerTriangular(Δ),)
+end
 
 inv(A::TrackedArray) = Tracker.track(inv, A)
 @grad function inv(A)
