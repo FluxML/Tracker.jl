@@ -11,6 +11,7 @@ gradtest(f, xs::AbstractArray...) = gradcheck((xs...) -> sum(sin.(f(xs...))), xs
 gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @testset "Tracker" begin
 @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
+@test gradtest((x, W) -> σ.(W*x), 5, (2,5))
 @test gradtest((x, W, b) -> σ.(W*x .+ b), (5,3), (2,5), 2)
 @test gradtest((x, W, b) -> logσ.(W*x .+ b), 5, (2,5), 2)
 @test gradtest((x, W, b) -> logσ.(W*x .+ b), (5,3), (2,5), 2)

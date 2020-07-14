@@ -533,7 +533,7 @@ Broadcast.BroadcastStyle(::TrackedStyle, ::BroadcastStyle) = TrackedStyle()
 broadcast_rebuild(xs) = data(xs)
 
 broadcast_rebuild(bc::Broadcasted) =
-  broadcasted(bc.f, broadcast_rebuild.(bc.args)...)
+  Broadcasted(bc.f, broadcast_rebuild.(bc.args))
 
 preprocess(x) = x
 
