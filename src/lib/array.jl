@@ -1,4 +1,4 @@
-import Base: *
+import Base: *, reduce
 
 import LinearAlgebra
 import LinearAlgebra: inv, det, logdet, logabsdet, \, /
@@ -237,6 +237,49 @@ end
     end for xs in Xs]
     return (Δs...,)
   end
+end
+
+function ∇reduce(f::typeof(vcat), Δ, xs)
+  start = 0
+  Δs = [begin
+    x = map(_ -> :, size(xsi))
+    i = isempty(x) ? x : Base.tail(x)
+    d = Δ[start+1:start+size(xsi,1), i...]
+    start += size(xsi, 1)
+    d
+  end for xsi in xs]
+  return Δs
+end
+
+function ∇reduce(f::typeof(hcat), Δ, xs)
+  start = 0
+  Δs = [begin
+    d = if ndims(xsi) == 1
+      Δ[:, start+1]
+    else
+      i = map(_ -> :, size(xsi)) |> Base.tail |> Base.tail
+      Δ[:, start+1:start+size(xsi,2), i...]
+    end
+    start += size(xsi, 2)
+    d
+  end for xsi in xs]
+  return Δs
+end
+
+for f in [:vcat, :hcat]
+  @eval function reduce(::typeof($f), xs::Vector{<:TrackedArray})
+    y = reduce($f, data.(xs))
+    track(Call(reduce, ($f, xs)), y)
+  end
+end
+
+function scan(c::Call{typeof(reduce)})
+    foreach(scan, tracker.(c.args[2]))
+end
+
+function back_(c::Call{typeof(reduce)}, Δ, once)
+  f, xs = c.args
+  foreach((x, d) -> back(x, d, once), tracker.(xs), data.(∇reduce(f, Δ, xs)))
 end
 
 Base.reshape(xs::TrackedArray, dims::Union{Colon,Int}...) = reshape(xs, dims)
