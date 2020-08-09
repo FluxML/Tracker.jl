@@ -55,8 +55,10 @@ end
 @testset "concat" begin
   cat1(x...) = cat(x..., dims = 1)
   cat2(x...) = cat(x..., dims = 2)
+  rvcat(x...) = reduce(vcat, x)
+  rhcat(x...) = reduce(hcat, x)
 
-  @testset for vcatf in [vcat, cat1]
+  @testset for vcatf in [vcat, cat1, rvcat]
     @test gradtest(vcatf, rand(5), rand(3))
     @test gradtest(vcatf, rand(5), rand(3), rand(8))
     @test gradtest(vcatf, rand(5)', rand(5)')
@@ -67,7 +69,7 @@ end
   end
 
 
-  @testset for hcatf in [hcat, cat2]
+  @testset for hcatf in [hcat, cat2, rhcat]
     @test gradtest(hcatf, rand(5), rand(5))
     @test gradtest(hcatf, rand(5)', rand(5)')
     @test gradtest(hcatf, rand(2,5), rand(2,3), rand(2,8))
@@ -77,7 +79,7 @@ end
     @test gradtest(hcatf, rand(5), rand(5,2))
 end
 
-  @testset for catf in [vcat, cat1, hcat, cat2, (x...) -> cat(x..., dims = 3), (x...) -> cat(x..., dims = (1,2))]
+  @testset for catf in [vcat, cat1, rvcat, hcat, cat2, rhcat, (x...) -> cat(x..., dims = 3), (x...) -> cat(x..., dims = (1,2))]
     @test gradtest(catf, rand(5))
     @test gradtest(catf, rand(5)')
     @test gradtest(catf, rand(2,5))
