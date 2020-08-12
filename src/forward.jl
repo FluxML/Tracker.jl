@@ -1,6 +1,6 @@
 using ForwardDiff
 
-seed(x::Real, ::Val) = Dual(x, true)
+seed(x::Union{Real,Complex}, ::Val) = Dual(x, true)
 
 function seed(x, ::Val{N}, offset = 0) where N
   map(x, reshape(1:length(x), size(x))) do x, i

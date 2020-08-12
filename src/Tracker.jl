@@ -67,6 +67,7 @@ include("params.jl")
 include("back.jl")
 include("numeric.jl")
 include("lib/real.jl")
+include("lib/complex.jl")
 include("lib/array.jl")
 include("forward.jl")
 
@@ -101,11 +102,13 @@ nobacksies(f, xs::Tuple) = map(x -> nobacksies(f, x), xs)
 @grad nobacksies(f::Symbol, x) = data(x), Δ -> error("Nested AD not defined for $f")
 @grad nobacksies(f::String, x) = data(x), Δ -> error(f)
 
-param(x::Number) = TrackedReal(float(x))
+param(x::Real) = TrackedReal(float(x))
+param(x::Complex) = TrackedComplex(float(x))
 param(xs::AbstractArray) = TrackedArray(float.(xs))
 
 @grad identity(x) = data(x), Δ -> (Δ,)
 param(x::TrackedReal) = track(identity, x)
+param(x::TrackedComplex) = track(identity, x)
 param(x::TrackedArray) = track(identity, x)
 
 import Adapt: adapt, adapt_structure

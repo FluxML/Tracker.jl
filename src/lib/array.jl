@@ -32,6 +32,7 @@ TrackedArray(c::Call, x::A, Δ::A) where A <: AbstractArray =
 TrackedArray(x::AbstractArray) = TrackedArray(Call(), x, zero(x))
 
 Base.eltype(x::Type{<:TrackedArray{T}}) where T <: Real = TrackedReal{T}
+Base.eltype(x::Type{<:TrackedArray{T}}) where T <: Complex = TrackedComplex{T}
 
 Base.convert(::Type{T}, x::S) where {T<:TrackedArray,S<:T} = x
 
@@ -171,7 +172,7 @@ end
 
 for i = 0:2, c = combinations([:AbstractArray, :TrackedArray, :Number], i), f = [:hcat, :vcat]
   cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::Union{AbstractArray,Number}...) =
+  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal,TrackedComplex}, xs::Union{AbstractArray,Number}...) =
     track($f, $(cnames...), x, xs...)
 end
 
@@ -539,7 +540,7 @@ unbroadcast(x::Number, Δ) = sum(Δ)
 unbroadcast(x::Base.RefValue, _) = nothing
 
 dual(x, p) = x
-dual(x::Real, p) = Dual(x, p)
+dual(x::Union{Real,Complex}, p) = Dual(x, p)
 
 function partial(f::F, Δ, i, args::Vararg{Any,N}) where {F,N}
   dargs = ntuple(j -> dual(args[j], i==j), Val(N))
@@ -548,7 +549,7 @@ end
 
 @inline function ∇broadcast(f::F, args::Vararg{Any,N}) where {F,N}
   y = broadcast(f, data.(args)...)
-  eltype(y) <: Real || return y
+  eltype(y) <: Union{Real,Complex} || return y
   eltype(y) == Bool && return y
   function back(Δ)
     Δargs = ntuple(i -> partial.(f, Δ, i, args...), Val(N))
@@ -563,7 +564,7 @@ using Base.Broadcast: BroadcastStyle, ArrayStyle, Broadcasted, broadcasted
 
 struct TrackedStyle <: BroadcastStyle end
 
-Broadcast.BroadcastStyle(::Type{<:Union{TrackedArray,TrackedReal}}) = TrackedStyle()
+Broadcast.BroadcastStyle(::Type{<:Union{TrackedArray,TrackedReal,TrackedComplex}}) = TrackedStyle()
 Broadcast.BroadcastStyle(::TrackedStyle, ::BroadcastStyle) = TrackedStyle()
 
 # We have to re-build the original broadcast struct to get the appropriate array
