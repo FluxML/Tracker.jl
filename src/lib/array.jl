@@ -329,11 +329,11 @@ end
 A::TrackedArray     / B::TrackedArray     = Tracker.track(/, A, B)
 A::AbstractVecOrMat / B::TrackedArray     = Tracker.track(/, A, B)
 A::TrackedArray     / B::AbstractVecOrMat = Tracker.track(/, A, B)
-@grad function (A / B)
+@grad function Base.:/(A, B)
     return Tracker.data(A) / Tracker.data(B), function (Δ)
-        Binv = inv(B)
-        ∇B = - Binv' * A' * Δ * Binv'
-        return (Δ * Binv',  ∇B)
+        ∇A = Δ / B'
+        ∇B = - (A / B)' * ∇A
+        return (∇A, ∇B)
     end
 end
 
@@ -341,11 +341,11 @@ end
 A::TrackedArray     \ B::TrackedArray     = Tracker.track(\, A, B)
 A::AbstractArray    \ B::TrackedArray     = Tracker.track(\, A, B)
 A::TrackedArray     \ B::AbstractVecOrMat = Tracker.track(\, A, B)
-@grad function (A \ B)
+@grad function Base.:\(A, B)
     return Tracker.data(A) \ Tracker.data(B), function (Δ)
-        Ainv = inv(A)
-        ∇A = - Ainv' * Δ * B' * Ainv'
-        return (∇A,  Ainv' * Δ)
+        ∇B = A' \ Δ
+        ∇A = - ∇B * (A \ B)'
+        return (∇A, ∇B)
     end
 end
 
