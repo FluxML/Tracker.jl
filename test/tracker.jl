@@ -153,7 +153,20 @@ end
 @test gradtest(W -> inv(log.(W * W)), (5,5))
 @test gradtest((A, B) -> A / B , (1,5), (5,5))
 @test gradtest((A, B) -> log.(A * A) / exp.(B * B), (5,5), (5,5))
+@test gradtest((A, B) -> A \ B, (5, 5), (5,))
+@test let A=rand(5, 5)
+    gradtest(B -> A \ B, (5,))
+end
+@test let B=rand(5,)
+    gradtest(A -> A \ B, (5, 5))
+end
 @test gradtest((A, B) -> log.(A * A) \ exp.(B * B), (5,5), (5,5))
+@test let A=rand(5, 5)
+    gradtest(B -> log.(A * A) \ exp.(B * B), (5, 5))
+end
+@test let B=rand(5, 5)
+    gradtest(A -> log.(A * A) \ exp.(B * B), (5, 5))
+end
 
 @testset "mean" begin
   @test gradtest(mean, rand(2, 3))

@@ -341,6 +341,8 @@ end
 A::TrackedArray     \ B::TrackedArray     = Tracker.track(\, A, B)
 A::AbstractArray    \ B::TrackedArray     = Tracker.track(\, A, B)
 A::TrackedArray     \ B::AbstractVecOrMat = Tracker.track(\, A, B)
+A::AbstractMatrix   \ B::TrackedVecOrMat  = Tracker.track(\, A, B)
+A::TrackedMatrix    \ B::TrackedVecOrMat  = Tracker.track(\, A, B)
 @grad function Base.:\(A, B)
     return Tracker.data(A) \ Tracker.data(B), function (Δ)
         ∇B = A' \ Δ
