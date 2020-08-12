@@ -6,12 +6,12 @@ import LinearAlgebra: inv, det, logdet, logabsdet, \, /
 using Statistics
 using LinearAlgebra: Transpose, Adjoint, diagm, diag
 
-struct TrackedArray{T,N,A<:AbstractArray{T,N},B} <: AbstractArray{T,N}
-  tracker::Tracked{B}
+struct TrackedArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
+  tracker::Tracked{A}
   data::A
-  grad::B
-  TrackedArray{T,N,A,B}(t::Tracked{B}, data::A) where {T,N,A,B} = new(t, data)
-  TrackedArray{T,N,A,B}(t::Tracked{B}, data::A, grad::B) where {T,N,A,B} = new(t, data, grad)
+  grad::A
+  TrackedArray{T,N,A}(t::Tracked{A}, data::A) where {T,N,A} = new(t, data)
+  TrackedArray{T,N,A}(t::Tracked{A}, data::A, grad::A) where {T,N,A} = new(t, data, grad)
 end
 
 data(x::TrackedArray) = x.data
@@ -23,14 +23,11 @@ TrackedVecOrMat{T,A} = Union{TrackedVector{T,A},TrackedMatrix{T,A}}
 
 track(c::Call, x::AbstractArray) = TrackedArray(c, x)
 
-TrackedArray(c::Call, x::A) where A <: AbstractArray = 
-  TrackedArray{eltype(A),ndims(A),A,A}(Tracked{A}(c), x)
-
-TrackedArray(c::Call, x::A) where A <: Union{SubArray, Transpose, Adjoint, PermutedDimsArray} = 
-  TrackedArray{eltype(A),ndims(A),A,Any}(Tracked{Any}(c), x)
+TrackedArray(c::Call, x::A) where A <: AbstractArray =
+  TrackedArray{eltype(A),ndims(A),A}(Tracked{A}(c), x)
 
 TrackedArray(c::Call, x::A, Δ::A) where A <: AbstractArray =
-  TrackedArray{eltype(A),ndims(A),A,A}(Tracked{A}(c, Δ), x, Δ)
+  TrackedArray{eltype(A),ndims(A),A}(Tracked{A}(c, Δ), x, Δ)
 
 TrackedArray(x::AbstractArray) = TrackedArray(Call(), x, zero(x))
 
@@ -41,12 +38,12 @@ Base.convert(::Type{T}, x::S) where {T<:TrackedArray,S<:T} = x
 Base.convert(T::Type{<:TrackedArray}, x::TrackedArray) =
   error("Not implemented: convert $(typeof(x)) to $T")
 
-Base.convert(::Type{<:TrackedArray{T,N,A,B}}, x::AbstractArray) where {T,N,A,B} =
+Base.convert(::Type{<:TrackedArray{T,N,A}}, x::AbstractArray) where {T,N,A} =
   TrackedArray(convert(A, x))
 
-Base.show(io::IO, t::Type{TrackedArray{T,N,A,B}}) where {T,N,A<:AbstractArray{T,N},B} =
+Base.show(io::IO, t::Type{TrackedArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} =
   @isdefined(A) ?
-    print(io, "TrackedArray{…,$A,...}") :
+    print(io, "TrackedArray{…,$A}") :
     invoke(show, Tuple{IO,DataType}, io, t)
 
 function Base.summary(io::IO, x::TrackedArray)

@@ -31,12 +31,13 @@ a::Call == b::Call = a.func == b.func && a.args == b.args
 @inline (c::Call)() = c.func(data.(c.args)...)
 
 mutable struct Tracked{T}
+  ref::UInt32
   f::Call
   isleaf::Bool
   grad::T
-  Tracked{T}(f::Call) where T = new(f, false)
-  Tracked{T}(f::Call, grad::T) where T = new(f, false, grad)
-  Tracked{T}(f::Call{Nothing}, grad::T) where T = new(f, true, grad)
+  Tracked{T}(f::Call) where T = new(0, f, false)
+  Tracked{T}(f::Call, grad::T) where T = new(0, f, false, grad)
+  Tracked{T}(f::Call{Nothing}, grad::T) where T = new(0, f, true, grad)
 end
 
 istracked(x::Tracked) = true
