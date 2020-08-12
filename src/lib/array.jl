@@ -4,7 +4,7 @@ import LinearAlgebra
 import LinearAlgebra: inv, det, logdet, logabsdet, \, /
 
 using Statistics
-using LinearAlgebra: Transpose, Adjoint, diagm, diag
+using LinearAlgebra: Diagonal, Transpose, Adjoint, diagm, diag
 
 struct TrackedArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
   tracker::Tracked{A}
@@ -452,6 +452,11 @@ Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractVector{T}}) where {T} = track(*,
 
 Base.:*(x::Adjoint{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
 Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
+
+Base.:*(x::Diagonal, y::TrackedVector) = track(*, x, y)
+
+Base.:*(x::Diagonal, y::TrackedMatrix) = track(*, x, y)
+Base.:*(x::TrackedMatrix, y::Diagonal) = track(*, x, y)
 
 @grad a::AbstractVecOrMat * b::AbstractVecOrMat =
   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
