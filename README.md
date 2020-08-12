@@ -1,6 +1,8 @@
 # Tracker
 
 [![Build Status](https://travis-ci.org/FluxML/Tracker.jl.svg?branch=master)](https://travis-ci.org/FluxML/Tracker.jl)
+[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+
 
 Flux's old AD, now replaced with [Zygote](https://github.com/FluxML/Zygote.jl).
 
