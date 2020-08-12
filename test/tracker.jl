@@ -1,8 +1,9 @@
 using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
+using PDMats
 using Printf: @sprintf
-using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet
+using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I
 using Statistics: mean, std
 using Random
 # using StatsBase
@@ -430,6 +431,21 @@ end
 @testset "Custom Sensitivities" begin
   y, back = Tracker.forward(x -> [3x^2, 2x], 5)
   @test back([1, 1]) == (32,)
+end
+
+@testset "PDMats" begin
+    B = rand(5, 5)
+    S = PDMat(I + B * B')
+    @test gradtest(A -> S / A, (5, 5))
+    gradient(A -> sum(S / A), rand(5, 5))
+
+    S = PDiagMat(rand(5))
+    @test gradtest(A -> S / A, (5, 5))
+    gradient(A -> sum(S / A), rand(5, 5))
+
+    S = ScalMat(5, rand())
+    @test gradtest(A -> S / A, (5, 5))
+    gradient(A -> sum(S / A), rand(5, 5))
 end
 
 end #testset
