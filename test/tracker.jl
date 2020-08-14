@@ -450,15 +450,12 @@ end
     B = rand(5, 5)
     S = PDMat(I + B * B')
     @test gradtest(A -> S / A, (5, 5))
-    gradient(A -> sum(S / A), rand(5, 5))
 
     S = PDiagMat(rand(5))
     @test gradtest(A -> S / A, (5, 5))
-    gradient(A -> sum(S / A), rand(5, 5))
 
     S = ScalMat(5, rand())
     @test gradtest(A -> S / A, (5, 5))
-    gradient(A -> sum(S / A), rand(5, 5))
 end
 
 end #testset
