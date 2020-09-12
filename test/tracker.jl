@@ -458,4 +458,12 @@ end
     @test gradtest(A -> S / A, (5, 5))
 end
 
+
+@testset "broadcast" begin
+    f(x) = @. x < zero(x)
+    y = @inferred(f(TrackedArray(rand(5, 3))))
+    @test size(y) == (5, 3)
+    @test !any(y)
+end
+
 end #testset

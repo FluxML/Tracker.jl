@@ -550,8 +550,7 @@ end
 
 @inline function ∇broadcast(f::F, args::Vararg{Any,N}) where {F,N}
   y = broadcast(f, data.(args)...)
-  eltype(y) <: Real || return y
-  eltype(y) == Bool && return y
+  (eltype(y) <: Real && eltype(y) !== Bool) || return y
   function back(Δ)
     Δargs = ntuple(i -> partial.(f, Δ, i, args...), Val(N))
     dxs = map(unbroadcast, args, Δargs)
@@ -573,7 +572,7 @@ Broadcast.BroadcastStyle(::TrackedStyle, ::BroadcastStyle) = TrackedStyle()
 broadcast_rebuild(xs) = data(xs)
 
 broadcast_rebuild(bc::Broadcasted) =
-  Broadcasted(bc.f, broadcast_rebuild.(bc.args))
+  Broadcasted(bc.f, map(broadcast_rebuild, bc.args))
 
 preprocess(x) = x
 
