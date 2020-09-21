@@ -464,6 +464,10 @@ end
     y = @inferred(f(TrackedArray(rand(5, 3))))
     @test size(y) == (5, 3)
     @test !any(y)
+
+    g(x) = @. (x < zero(x)) * x
+    y = @inferred(g(TrackedArray(rand(5, 3))))
+    @test size(y) == (5, 3)
 end
 
 end #testset
