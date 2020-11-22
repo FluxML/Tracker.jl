@@ -3,7 +3,7 @@ using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
 using PDMats
 using Printf: @sprintf
-using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I
+using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I, Diagonal
 using Statistics: mean, std
 using Random
 # using StatsBase
@@ -18,6 +18,11 @@ gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @test gradtest((x, W, b) -> logσ.(W*x .+ b), (5,3), (2,5), 2)
 @test gradtest((w, x) -> w'*x, randn(Float64,10, 2), randn(Float64,10))
 @test gradtest((w, x) -> w*x', randn(Float64,5,5), randn(Float64,5,5))
+let A=Diagonal(randn(5, 5))
+    @test gradtest(x-> A * x, (5,))
+    @test gradtest(x-> A * x, (5, 5))
+    @test gradtest(x-> x * A, (5, 5))
+end
 @test gradtest(x -> sum(x, dims = (2, 3)), (3,4,5))
 @test gradtest(x -> sum(x, dims = 1), randn(Float64,2,3))
 @test gradtest(x -> sum(x, dims = [1,2]), randn(Float64,2,3))
