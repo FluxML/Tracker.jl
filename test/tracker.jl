@@ -99,6 +99,7 @@ end
     @test gradtest(catdim, rand(5), rand(5), rand(5))
     @test gradtest(catdim, rand(2,5), rand(2,5), rand(2,5))
     @test gradtest(catdim, rand(2,5,3), rand(2,5,3), rand(2,5,3))
+    dim == 3 && @test gradtest(catdim, rand(2,5,3), rand(2,5,0), rand(2,5,3))
   end
 
   @test !isa(vcat(rand(2)), TrackedArray)
