@@ -475,7 +475,7 @@ softmax(xs::TrackedArray; dims=1) = track(softmax, xs; dims=dims)
 
 logsoftmax(xs::TrackedArray; dims=1) = track(logsoftmax, xs; dims=dims)
 
-@grad logsoftmax(xs; dims=dims) = logsoftmax(data(xs); dims=dims), Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs); dims=dims)),)
+@grad logsoftmax(xs; dims=1) = logsoftmax(data(xs); dims=dims), Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs); dims=dims)),)
 
 depthwiseconv(x::TrackedArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
 depthwiseconv(x::AbstractArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
