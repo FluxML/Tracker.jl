@@ -30,10 +30,12 @@ end
 @test gradtest(x -> prod(x, dims=(2, 3)), (3,4,5))
 @test gradtest(x -> prod(x), (3,4,5))
 
-@test gradtest(x -> softmax(x).*(1:3), 3)
-@test gradtest(x -> softmax(x).*(1:3), (3,5))
-@test gradtest(x -> logsoftmax(x).*(1:3), 3)
-@test gradtest(x -> logsoftmax(x).*(1:3), (3,5))
+@test gradtest(x -> softmax(x; dims = 1).*(1:3), 3)
+@test gradtest(x -> softmax(x; dims = 1).*(1:3), (3,5))
+@test gradtest(x -> softmax(x; dims = 2).*(1:3), (3,5))
+@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), 3)
+@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), (3,5))
+@test gradtest(x -> logsoftmax(x; dims = 2).*(1:3), (3,5))
 
 @test gradtest(x -> x', rand(5))
 
