@@ -550,7 +550,7 @@ dual(x::Real, p) = Dual(x, p)
 
 function partial(f::F, Δ, i, args::Vararg{Any,N}) where {F,N}
   dargs = ntuple(j -> dual(args[j], i==j), Val(N))
-  return Δ * f(dargs...).partials[1]
+  return all(iszero.(Δ)) ? Δ : Δ * f(dargs...).partials[1]
 end
 
 @inline function ∇broadcast(f::F, args::Vararg{Any,N}) where {F,N}
