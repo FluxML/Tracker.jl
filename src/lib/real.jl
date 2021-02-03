@@ -55,6 +55,7 @@ for f in :[isinf, isnan, isfinite].args
 end
 
 Printf.fix_dec(x::TrackedReal, n::Int, a...) = Printf.fix_dec(data(x), n, a...)
+Printf.tofloat(x::TrackedReal) = Printf.tofloat(data(x))
 
 Base.float(x::TrackedReal) = x
 
