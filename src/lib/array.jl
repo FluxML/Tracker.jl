@@ -298,7 +298,7 @@ Base.reverse(xs::TrackedArray; dims) = track(reverse, xs, dims = dims)
 @grad reverse(xs; dims) = reverse(data(xs), dims = dims), Δ -> (reverse(Δ, dims = dims), nothing)
 Base.reverse(xs::TrackedVector) = track(reverse, xs)
 @grad reverse(xs::TrackedVector) = reverse(data(xs)), Δ -> (reverse(Δ),)
-Base.reverse(xs::TrackedVector, start, stop) = track(reverse, xs, start, stop)
+Base.reverse(xs::TrackedVector, start::Integer, stop::Integer) = track(reverse, xs, start, stop)
 @grad reverse(xs, start, stop) = reverse(data(xs), start, stop), Δ -> (reverse(Δ, start, stop), nothing, nothing)
 
 function _kron(mat1::AbstractMatrix,mat2::AbstractMatrix)
