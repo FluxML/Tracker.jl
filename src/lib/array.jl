@@ -4,7 +4,7 @@ import LinearAlgebra
 import LinearAlgebra: inv, det, logdet, logabsdet, \, /
 
 using Statistics
-using LinearAlgebra: Transpose, Adjoint, diagm, diag
+using LinearAlgebra: Diagonal, Transpose, Adjoint, diagm, diag
 
 struct TrackedArray{T,N,A<:AbstractArray{T,N},B} <: AbstractArray{T,N}
   tracker::Tracked{B}
@@ -233,7 +233,7 @@ end
     Δs = [begin
       dim_xs = 1:ndims(xs)
       till_xs = ntuple((i -> i in dims ? (i in dim_xs ? size(xs,i) : 1) : 0), Val(ndims(Δ)))
-      xs_in_Δ = ntuple(i -> till_xs[i] > 0 ? (start[i]+1:start[i]+till_xs[i]) : Colon(), Val(ndims(Δ)))
+      xs_in_Δ = ntuple(i -> i in dims ? (start[i]+1:start[i]+till_xs[i]) : Colon(), Val(ndims(Δ)))
       d = reshape(Δ[xs_in_Δ...],size(xs))
       start = start .+ till_xs
       d
@@ -301,7 +301,7 @@ Base.reverse(xs::TrackedArray; dims) = track(reverse, xs, dims = dims)
 @grad reverse(xs; dims) = reverse(data(xs), dims = dims), Δ -> (reverse(Δ, dims = dims), nothing)
 Base.reverse(xs::TrackedVector) = track(reverse, xs)
 @grad reverse(xs::TrackedVector) = reverse(data(xs)), Δ -> (reverse(Δ),)
-Base.reverse(xs::TrackedVector, start, stop) = track(reverse, xs, start, stop)
+Base.reverse(xs::TrackedVector, start::Integer, stop::Integer) = track(reverse, xs, start, stop)
 @grad reverse(xs, start, stop) = reverse(data(xs), start, stop), Δ -> (reverse(Δ, start, stop), nothing, nothing)
 
 function _kron(mat1::AbstractMatrix,mat2::AbstractMatrix)
@@ -332,11 +332,11 @@ end
 A::TrackedArray     / B::TrackedArray     = Tracker.track(/, A, B)
 A::AbstractVecOrMat / B::TrackedArray     = Tracker.track(/, A, B)
 A::TrackedArray     / B::AbstractVecOrMat = Tracker.track(/, A, B)
-@grad function (A / B)
+@grad function Base.:/(A, B)
     return Tracker.data(A) / Tracker.data(B), function (Δ)
-        Binv = inv(B)
-        ∇B = - Binv' * A' * Δ * Binv'
-        return (Δ * Binv',  ∇B)
+        ∇A = Δ / B'
+        ∇B = - (A / B)' * ∇A
+        return (∇A, ∇B)
     end
 end
 
@@ -344,11 +344,13 @@ end
 A::TrackedArray     \ B::TrackedArray     = Tracker.track(\, A, B)
 A::AbstractArray    \ B::TrackedArray     = Tracker.track(\, A, B)
 A::TrackedArray     \ B::AbstractVecOrMat = Tracker.track(\, A, B)
-@grad function (A \ B)
+A::AbstractMatrix   \ B::TrackedVecOrMat  = Tracker.track(\, A, B)
+A::TrackedMatrix    \ B::TrackedVecOrMat  = Tracker.track(\, A, B)
+@grad function Base.:\(A, B)
     return Tracker.data(A) \ Tracker.data(B), function (Δ)
-        Ainv = inv(A)
-        ∇A = - Ainv' * Δ * B' * Ainv'
-        return (∇A,  Ainv' * Δ)
+        ∇B = A' \ Δ
+        ∇A = - ∇B * (A \ B)'
+        return (∇A, ∇B)
     end
 end
 
@@ -456,6 +458,11 @@ Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractVector{T}}) where {T} = track(*,
 Base.:*(x::Adjoint{T,<:AbstractMatrix{T}},y::TrackedVector) where {T} = track(*, x, y)
 Base.:*(x::TrackedVector,y::Adjoint{T,<:AbstractMatrix{T}}) where {T} = track(*, x, y)
 
+Base.:*(x::Diagonal, y::TrackedVector) = track(*, x, y)
+
+Base.:*(x::Diagonal, y::TrackedMatrix) = track(*, x, y)
+Base.:*(x::TrackedMatrix, y::Diagonal) = track(*, x, y)
+
 @grad a::AbstractVecOrMat * b::AbstractVecOrMat =
   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
 
@@ -465,13 +472,13 @@ using NNlib
 import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, ∇conv_data, depthwiseconv, maxpool, meanpool
 import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims
 
-softmax(xs::TrackedArray) = track(softmax, xs)
+softmax(xs::TrackedArray; dims=1) = track(softmax, xs; dims=dims)
 
-@grad softmax(xs) = softmax(data(xs)), Δ -> (nobacksies(:softmax, ∇softmax(data(Δ), data(xs))),)
+@grad softmax(xs; dims=1) = softmax(data(xs); dims=dims), Δ -> (nobacksies(:softmax, ∇softmax(data(Δ), data(xs); dims=dims)),)
 
-logsoftmax(xs::TrackedArray) = track(logsoftmax, xs)
+logsoftmax(xs::TrackedArray; dims=1) = track(logsoftmax, xs; dims=dims)
 
-@grad logsoftmax(xs) = logsoftmax(data(xs)), Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs))),)
+@grad logsoftmax(xs; dims=1) = logsoftmax(data(xs); dims=dims), Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs); dims=dims)),)
 
 depthwiseconv(x::TrackedArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
 depthwiseconv(x::AbstractArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
@@ -551,8 +558,7 @@ end
 
 @inline function ∇broadcast(f::F, args::Vararg{Any,N}) where {F,N}
   y = broadcast(f, data.(args)...)
-  eltype(y) <: Real || return y
-  eltype(y) == Bool && return y
+  (eltype(y) <: Real && eltype(y) !== Bool) || return y
   function back(Δ)
     Δargs = ntuple(i -> partial.(f, Δ, i, args...), Val(N))
     dxs = map(unbroadcast, args, Δargs)
@@ -574,7 +580,7 @@ Broadcast.BroadcastStyle(::TrackedStyle, ::BroadcastStyle) = TrackedStyle()
 broadcast_rebuild(xs) = data(xs)
 
 broadcast_rebuild(bc::Broadcasted) =
-  Broadcasted(bc.f, broadcast_rebuild.(bc.args))
+  Broadcasted(bc.f, map(broadcast_rebuild, bc.args))
 
 preprocess(x) = x
 

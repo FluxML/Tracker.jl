@@ -1,8 +1,9 @@
 using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
+using PDMats
 using Printf: @sprintf
-using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet
+using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I, Diagonal
 using Statistics: mean, std
 using Random
 # using StatsBase
@@ -17,6 +18,11 @@ gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @test gradtest((x, W, b) -> logσ.(W*x .+ b), (5,3), (2,5), 2)
 @test gradtest((w, x) -> w'*x, randn(Float64,10, 2), randn(Float64,10))
 @test gradtest((w, x) -> w*x', randn(Float64,5,5), randn(Float64,5,5))
+let A=Diagonal(randn(5, 5))
+    @test gradtest(x-> A * x, (5,))
+    @test gradtest(x-> A * x, (5, 5))
+    @test gradtest(x-> x * A, (5, 5))
+end
 @test gradtest(x -> sum(x, dims = (2, 3)), (3,4,5))
 @test gradtest(x -> sum(x, dims = 1), randn(Float64,2,3))
 @test gradtest(x -> sum(x, dims = [1,2]), randn(Float64,2,3))
@@ -24,10 +30,12 @@ gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
 @test gradtest(x -> prod(x, dims=(2, 3)), (3,4,5))
 @test gradtest(x -> prod(x), (3,4,5))
 
-@test gradtest(x -> softmax(x).*(1:3), 3)
-@test gradtest(x -> softmax(x).*(1:3), (3,5))
-@test gradtest(x -> logsoftmax(x).*(1:3), 3)
-@test gradtest(x -> logsoftmax(x).*(1:3), (3,5))
+@test gradtest(x -> softmax(x; dims = 1).*(1:3), 3)
+@test gradtest(x -> softmax(x; dims = 1).*(1:3), (3,5))
+@test gradtest(x -> softmax(x; dims = 2).*(1:3), (3,5))
+@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), 3)
+@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), (3,5))
+@test gradtest(x -> logsoftmax(x; dims = 2).*(1:3), (3,5))
 
 @test gradtest(x -> x', rand(5))
 
@@ -93,6 +101,7 @@ end
     @test gradtest(catdim, rand(5), rand(5), rand(5))
     @test gradtest(catdim, rand(2,5), rand(2,5), rand(2,5))
     @test gradtest(catdim, rand(2,5,3), rand(2,5,3), rand(2,5,3))
+    dim == 3 && @test gradtest(catdim, rand(2,5,3), rand(2,5,0), rand(2,5,3))
   end
 
   @test !isa(vcat(rand(2)), TrackedArray)
@@ -152,7 +161,20 @@ end
 @test gradtest(W -> inv(log.(W * W)), (5,5))
 @test gradtest((A, B) -> A / B , (1,5), (5,5))
 @test gradtest((A, B) -> log.(A * A) / exp.(B * B), (5,5), (5,5))
+@test gradtest((A, B) -> A \ B, (5, 5), (5,))
+@test let A=rand(5, 5)
+    gradtest(B -> A \ B, (5,))
+end
+@test let B=rand(5,)
+    gradtest(A -> A \ B, (5, 5))
+end
 @test gradtest((A, B) -> log.(A * A) \ exp.(B * B), (5,5), (5,5))
+@test let A=rand(5, 5)
+    gradtest(B -> log.(A * A) \ exp.(B * B), (5, 5))
+end
+@test let B=rand(5, 5)
+    gradtest(A -> log.(A * A) \ exp.(B * B), (5, 5))
+end
 
 @testset "mean" begin
   @test gradtest(mean, rand(2, 3))
@@ -440,6 +462,30 @@ end
     end
     return s
   end[1] == ones(10000)
+end
+
+@testset "PDMats" begin
+    B = rand(5, 5)
+    S = PDMat(I + B * B')
+    @test gradtest(A -> S / A, (5, 5))
+
+    S = PDiagMat(rand(5))
+    @test gradtest(A -> S / A, (5, 5))
+
+    S = ScalMat(5, rand())
+    @test gradtest(A -> S / A, (5, 5))
+end
+
+
+@testset "broadcast" begin
+    f(x) = @. x < zero(x)
+    y = @inferred(f(TrackedArray(rand(5, 3))))
+    @test size(y) == (5, 3)
+    @test !any(y)
+
+    g(x) = @. (x < zero(x)) * x
+    y = @inferred(g(TrackedArray(rand(5, 3))))
+    @test size(y) == (5, 3)
 end
 
 end #testset

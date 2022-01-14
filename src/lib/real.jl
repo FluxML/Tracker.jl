@@ -55,6 +55,9 @@ for f in :[isinf, isnan, isfinite].args
 end
 
 Printf.fix_dec(x::TrackedReal, n::Int, a...) = Printf.fix_dec(data(x), n, a...)
+if VERSION >= v"1.6-"
+  Printf.tofloat(x::TrackedReal) = Printf.tofloat(data(x))
+end
 
 Base.float(x::TrackedReal) = x
 

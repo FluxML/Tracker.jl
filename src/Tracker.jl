@@ -68,6 +68,7 @@ include("numeric.jl")
 include("lib/real.jl")
 include("lib/array.jl")
 include("forward.jl")
+@init @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("lib/pdmats.jl")
 
 """
     hook(f, x) -> x′
