@@ -17,8 +17,8 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-Adapt = "1,2,3"
-DiffRules = "0.0,0.1,1"
+Adapt = "1, 2, 3"
+DiffRules = "0.0, 0.1, 1"
 ForwardDiff = "0.10"
 MacroTools = "0.5"
 NNlib = "0.6, 0.7, 0.8"
