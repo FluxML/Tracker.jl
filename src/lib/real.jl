@@ -70,32 +70,31 @@ for f in :[rand, randn, randexp].args
   @eval Random.$f(rng::AbstractRNG,::Type{TrackedReal{T}}) where {T} = param(rand(rng,T))
 end
 
-using DiffRules, SpecialFunctions, NaNMath
-
-for (M, f, arity) in DiffRules.diffrules()
-  arity == 1 || continue
-  @eval begin
-    @grad $M.$f(a::Real) =
-      $M.$f(data(a)), Δ -> (Δ * $(DiffRules.diffrule(M, f, :a)),)
-    $M.$f(a::TrackedReal) = track($M.$f, a)
-  end
-end
-
 # Work around zero(π) not working, for some reason
 _zero(::Irrational) = nothing
 _zero(x) = zero(x)
 
-for (M, f, arity) in DiffRules.diffrules()
-  arity == 2 || continue
-  da, db = DiffRules.diffrule(M, f, :a, :b)
-  f = :($M.$f)
-  @eval begin
-    @grad $f(a::TrackedReal, b::TrackedReal) = $f(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
-    @grad $f(a::TrackedReal, b::Real) = $f(data(a), b), Δ -> (Δ * $da, _zero(b))
-    @grad $f(a::Real, b::TrackedReal) = $f(a, data(b)), Δ -> (_zero(a), Δ * $db)
-    $f(a::TrackedReal, b::TrackedReal)  = track($f, a, b)
-    $f(a::TrackedReal, b::Real) = track($f, a, b)
-    $f(a::Real, b::TrackedReal) = track($f, a, b)
+for (M, f, arity) in DiffRules.diffrules(; filter_modules=nothing)
+  if !(isdefined(@__MODULE__, M) && isdefined(getfield(@__MODULE__, M), f))
+    @warn "$M.$f is not available and hence rule for it can not be defined"
+    continue  # Skip rules for methods not defined in the current scope
+  end
+  Mf = :($M.$f)
+  if arity == 1
+    @eval begin
+      @grad $Mf(a::Real) = $Mf(data(a)), Δ -> (Δ * $(DiffRules.diffrule(M, f, :a)),)
+      $Mf(a::TrackedReal) = track($Mf, a)
+    end
+  elseif arity == 2
+    da, db = DiffRules.diffrule(M, f, :a, :b)
+    @eval begin
+      @grad $Mf(a::TrackedReal, b::TrackedReal) = $Mf(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
+      @grad $Mf(a::TrackedReal, b::Real) = $Mf(data(a), b), Δ -> (Δ * $da, _zero(b))
+      @grad $Mf(a::Real, b::TrackedReal) = $Mf(a, data(b)), Δ -> (_zero(a), Δ * $db)
+      $Mf(a::TrackedReal, b::TrackedReal)  = track($Mf, a, b)
+      $Mf(a::TrackedReal, b::Real) = track($Mf, a, b)
+      $Mf(a::Real, b::TrackedReal) = track($Mf, a, b)
+    end
   end
 end
 

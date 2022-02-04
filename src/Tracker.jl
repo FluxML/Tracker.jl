@@ -2,6 +2,12 @@ module Tracker
 
 using MacroTools
 using MacroTools: @q, @forward
+
+using DiffRules
+import LogExpFunctions
+import NaNMath
+import SpecialFunctions
+
 import Printf
 
 import Base: ==
