@@ -171,7 +171,9 @@ end
 
 for i = 0:2, c = combinations([:AbstractArray, :TrackedArray, :Number], i), f = [:hcat, :vcat]
   cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::Union{AbstractArray,Number}...) =
+  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::AbstractArray...) =
+    track($f, $(cnames...), x, xs...)
+  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::Number...) =
     track($f, $(cnames...), x, xs...)
 end
 

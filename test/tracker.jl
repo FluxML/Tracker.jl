@@ -129,9 +129,11 @@ end
 
   @testset "scalars" begin
     @test vcat(param([1, 2, 3]), 1) isa TrackedArray
+    @test vcat(param(1), 2) isa TrackedArray
+
+    # These two are ambiguity errors on Julia 1.8
     @test vcat(1, param([1, 2, 3])) isa TrackedArray
     @test hcat(1, param([1 2 3;])) isa TrackedArray
-    @test vcat(param(1), 2) isa TrackedArray
   end
 
 end
