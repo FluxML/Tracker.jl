@@ -471,11 +471,31 @@ import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims
 
 softmax(xs::TrackedArray; dims=1) = track(softmax, xs; dims=dims)
 
-@grad softmax(xs; dims=1) = softmax(data(xs); dims=dims), Δ -> (nobacksies(:softmax, ∇softmax(data(Δ), data(xs); dims=dims)),)
+if isdefined(NNlib, :∇softmax_data)  # use new form to avoid a depwarn, but only possible Julia 1.6+
+  @eval @grad function softmax(xs; dims=1)
+    y = softmax(data(xs); dims=dims)
+    y, Δ -> (nobacksies(:softmax, NNlib.∇softmax_data(data(Δ), data(y); dims=dims)),)
+  end
+else
+  @eval @grad function softmax(xs; dims=1)  # TODO delete this when dropping Julia 1.3 (and increase NNlib bound)
+    y = softmax(data(xs); dims=dims)
+    y, Δ -> (nobacksies(:softmax, ∇softmax(data(Δ), data(xs), data(y); dims=dims)),)
+  end
+end
 
 logsoftmax(xs::TrackedArray; dims=1) = track(logsoftmax, xs; dims=dims)
 
-@grad logsoftmax(xs; dims=1) = logsoftmax(data(xs); dims=dims), Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs); dims=dims)),)
+if isdefined(NNlib, :∇logsoftmax_data)  # use new form to avoid a depwarn, but only possible Julia 1.6+
+  @eval @grad function logsoftmax(xs; dims=1)
+    y = logsoftmax(data(xs); dims=dims)
+    y, Δ -> (nobacksies(:logsoftmax, NNlib.∇logsoftmax_data(data(Δ), data(y); dims=dims)),)
+  end
+else
+  @eval @grad function logsoftmax(xs; dims=1)
+    y = logsoftmax(data(xs); dims=dims)
+    y, Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs), data(y); dims=dims)),)
+  end
+end
 
 depthwiseconv(x::TrackedArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
 depthwiseconv(x::AbstractArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
