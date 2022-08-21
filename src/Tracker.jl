@@ -13,7 +13,7 @@ import Printf
 import Base: ==
 
 export TrackedArray, TrackedVector, TrackedMatrix, Params, gradient,
-  jacobian, hessian, param, back!
+  jacobian, hessian, param, back!, withgradient
 
 tracker(x) = nothing
 
@@ -70,10 +70,10 @@ end
 
 include("idset.jl")
 include("params.jl")
-include("back.jl")
-include("numeric.jl")
 include("lib/real.jl")
 include("lib/array.jl")
+include("back.jl")
+include("numeric.jl")
 include("forward.jl")
 @init @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("lib/pdmats.jl")
 
