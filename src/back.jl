@@ -179,7 +179,7 @@ end
 
 hessian(f, x) = jacobian(x -> gradient(f, x, nest=true)[1], x)
 
-using Functors: fmap, fmapstructure
+using Functors: fmap, functor
 using Optimisers: _trainable, isnumeric
 
 """
@@ -189,9 +189,10 @@ This computes the value `f(xs...)` and the gradient with respect to `xs`.
 However, it differs from `gradient` in several other respects:
 * It will recurse into `xs` using `fmap`, and thus like Zygote's "explicit mode" it
   returns a tree-like gradient matching the shape of a Flux model.
+  This recursion obeys restrictions imposed by `Optimisers.trainable`, if defined.
 * Only objects satisfying `Optimisers.isnumeric` are regarded as parameters,
   thus in particular integers are ignored.
-* Returns plain arrays, not tracked.
+* Returns plain arrays, not tracked. Uses `nothing` as a strong zero gradient, like Zygote.
 
 # Examples
 ```
@@ -213,13 +214,23 @@ julia> withgradient(model, rand(Float32, 2)) do m, x
 ```
 """
 function withgradient(f, xs...)
-    pxs = fmap(param, xs; exclude = isnumeric)  # would ideally apply params only to trainable
+    pxs = fmap(param, xs; exclude = isnumeric, walk = _trainable_walk)
     l = f(pxs...)
     losscheck(l)
     l isa TrackedReal || return (val = l, grad = nothing)
     @interrupts back!(l)
     (val = data(l), grad = rec_grad(pxs))
 end
+
+function _trainable_walk(f, x)
+  func, re = functor(x)
+  isempty(func) && return x
+  done = map(f, _trainable(x))  # recurse only into trainable fields, this contains `nothing` elsewhere
+  map(func, merge(func, done)) do n, t
+      isnothing(t) ? n : t
+  end |> re  # reconstruct the whole thing
+end
+_trainable_walk(f, x::Tuple) = map(f, x)
 
 # Easier to write the recursion to extract the gradients without using fmap:
 rec_grad(x::TrackedArray) = grad(x)
