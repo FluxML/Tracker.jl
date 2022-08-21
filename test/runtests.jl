@@ -17,4 +17,20 @@ using Tracker: jacobian
   @test J ≈ A.data
 end
 
+using Optimisers, Functors
+struct TwoThirds a; b; c; end  # evil test from Optimisers.jl
+@eval Functors.@functor TwoThirds (a, c)
+Optimisers.trainable(x::TwoThirds) = (a = x.a,)
+
+@testset "withgradient" begin
+  nt = (vec = [1.0, 2.0], mat = [4.0;;], fun = sin);
+  @test withgradient((x, p) -> sum(abs2, x.vec) ^ p, nt, 2) == (val = 25.0, grad = ((vec = [20.0, 40.0], mat = [0.0;;], fun = nothing), nothing))
+
+  @test withgradient(x -> sum(x.v), (v = [1, 2], w = [3.0])) == (val = 3, grad = nothing)
+
+  m = TwoThirds([1.0], [2.0], [3.0])  # only the first should be tracked, but all should survive
+  g = withgradient(m -> only(m.a::AbstractVector + m.b::Vector + m.c::Vector), m)
+  @test g == (val = 6.0, grad = ((a = [1.0], b = nothing, c = nothing),))
 end
+
+end  # overall @testset
