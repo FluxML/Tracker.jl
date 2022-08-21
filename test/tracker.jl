@@ -8,10 +8,10 @@ using Statistics: mean, std
 using Random
 # using StatsBase
 
-gradtest(f, xs::AbstractArray...) = gradcheck((xs...) -> sum(sin.(f(xs...))), xs...)
-gradtest(f, dims...) = gradtest(f, rand.(Float64, dims)...)
+gradtest(f, xs::AbstractArray...; kw...) = gradcheck((xs...) -> sum(sin.(f(xs...))), xs...; kw...)
+gradtest(f, dims...; kw...) = gradtest(f, rand.(Float64, dims)...; kw...)
 
-@testset "Tracker" begin # overall testset, rest of the file
+@testset "gradtests 1" begin
 
 @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
 @test gradtest((x, W) -> σ.(W*x), 5, (2,5))
@@ -45,20 +45,24 @@ end
 @test gradtest(logdet, map((x) -> x*x', (rand(4, 4),))[1])
 @test gradtest((x) -> logabsdet(x)[1], (4, 4))
 
+end # @testset gradtests
+
 @testset "indexing & slicing" begin
-  gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
+  @test gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
 end
 
 function promotiontest(f, A, B, C)
   r0 = f(A, B, C)
   r1 = f(param(A), B, C)
   r2 = f(A, param(B), C)
-  r3 = f(A, B, param(C))
+  # r3 = f(A, B, param(C))  # no longer cater to tracked array in 3rd position
   r4 = f(param(A), param(B), param(C))
 
   @test !isa(r0, TrackedArray)
-  @test all(isa.([r1,r2,r3,r4], TrackedArray))
-  @test r1 == r2 == r3 == r4
+  # @test all(isa.([r1,r2,r3,r4], TrackedArray))
+  # @test r1 == r2 == r3 == r4
+  @test all(isa.([r1,r2,r4], TrackedArray))
+  @test r1 == r2 == r4
   @test r0 == Tracker.data(r4)
 end
 
@@ -68,7 +72,7 @@ end
   rvcat(x...) = reduce(vcat, x)
   rhcat(x...) = reduce(hcat, x)
 
-  @testset for vcatf in [vcat, cat1, rvcat]
+  @testset "2-arg $vcatf" for vcatf in [vcat, cat1, rvcat]
     @test gradtest(vcatf, rand(5), rand(3))
     @test gradtest(vcatf, rand(5), rand(3), rand(8))
     @test gradtest(vcatf, rand(5)', rand(5)')
@@ -79,7 +83,7 @@ end
   end
 
 
-  @testset for hcatf in [hcat, cat2, rhcat]
+  @testset "2-arg $hcatf" for hcatf in [hcat, cat2, rhcat]
     @test gradtest(hcatf, rand(5), rand(5))
     @test gradtest(hcatf, rand(5)', rand(5)')
     @test gradtest(hcatf, rand(2,5), rand(2,3), rand(2,8))
@@ -89,7 +93,7 @@ end
     @test gradtest(hcatf, rand(5), rand(5,2))
 end
 
-  @testset for catf in [vcat, cat1, rvcat, hcat, cat2, rhcat, (x...) -> cat(x..., dims = 3), (x...) -> cat(x..., dims = (1,2))]
+  @testset "1-arg $catf" for catf in [vcat, cat1, rvcat, hcat, cat2, rhcat, (x...) -> cat(x..., dims = 3), (x...) -> cat(x..., dims = (1,2))]
     @test gradtest(catf, rand(5))
     @test gradtest(catf, rand(5)')
     @test gradtest(catf, rand(2,5))
@@ -133,6 +137,13 @@ end
     @test hcat(1, param([1 2 3;])) isa TrackedArray
     @test vcat(param(1), 2) isa TrackedArray
   end
+  
+  @testset "ambiguities" begin
+    @test vcat(param([1, 2, 3]), [2,3]) isa TrackedArray
+    @test vcat(param([1, 2, 3]), [2.0, 3.0]) isa TrackedArray
+    @test hcat(param([1 2 3]), [2, 3]') isa TrackedArray
+    @test hcat(param([1 2 3]), [2.0, 3.0]') isa TrackedArray
+  end
 
 end
 
@@ -140,6 +151,8 @@ end
   z = [2, 3, 3]
   @test gradtest(x->x[z], randn(MersenneTwister(123456), 3))
 end
+
+@testset "gradtests 2" begin
 
 @test gradtest(x -> permutedims(x, [3,1,2]), rand(4,5,6))
 @test gradtest(x -> PermutedDimsArray(x, [3,1,2]), rand(4,5,6))
@@ -159,6 +172,7 @@ end
 @test gradtest(kron, rand(5,2), rand(3,2), rand(8,2))
 
 @test gradtest(x -> diagm(0 => x), rand(3))
+@test gradtest(x -> Matrix(Diagonal(x)), rand(3))
 
 @test gradtest(W -> inv(log.(W * W)), (5,5))
 @test gradtest((A, B) -> A / B , (1,5), (5,5))
@@ -177,6 +191,8 @@ end
 @test let B=rand(5, 5)
     gradtest(A -> log.(A * A) \ exp.(B * B), (5, 5))
 end
+
+end  # @testset "gradtests 2"
 
 @testset "mean" begin
   @test gradtest(mean, rand(2, 3))
@@ -208,6 +224,8 @@ end
   @test gradtest(x -> minimum(x, dims=[1, 2]), rand(2, 3, 4))
 end
 
+@testset "gradtests 3" begin
+
 @test gradtest(x -> std(x), rand(5,5))
 @test gradtest(x -> std(x, dims = 1), rand(5,5))
 @test gradtest(x -> std(x, dims = 1, corrected = false), rand(5,5))
@@ -223,6 +241,8 @@ end
   y = x.^2
   2y + x
 end
+
+end # @testset "gradtests 3"
 
 @testset "transpose" begin
   w = Tracker.TrackedArray(rand(5,5))
@@ -299,8 +319,7 @@ end
   @test transpose(w)*transpose(x) isa TrackedArray
 end
 
-@testset "conv" begin
-  for spatial_rank in (1, 2, 3)
+@testset "conv, $(spatial_rank)d" for spatial_rank in (1, 2, 3)
     x = rand(repeat([10], spatial_rank)..., 3, 2)
     w = rand(repeat([3], spatial_rank)..., 3, 3)
     cdims = DenseConvDims(x, w)
@@ -308,8 +327,7 @@ end
     y = conv(x, w, cdims)
     @test gradtest((y, w) -> ∇conv_data(y, w, cdims), y, w)
     dcdims = DepthwiseConvDims(x, w)
-    @test gradtest((x, w) -> depthwiseconv(x, w, dcdims), x, w)
-    end
+    @test_skip gradtest((x, w) -> depthwiseconv(x, w, dcdims), x, w)
 end
 
 @testset "pooling" begin
@@ -320,7 +338,6 @@ end
     @test gradtest(x -> meanpool(x, pdims), x)
   end
 end
-
 
 @test gradtest(x -> Float64.(x), 5)
 
@@ -480,4 +497,3 @@ end
     @test size(y) == (5, 3)
 end
 
-end # overall testset

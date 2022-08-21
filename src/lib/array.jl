@@ -163,29 +163,31 @@ Base.repeat(xs::TrackedArray; kw...) = track(repeat, xs; kw...)
   end
 end
 
-function combinations(xs, n)
-  n < 1 && return [[]]
-  cs = combinations(xs, n-1)
-  [[x, c...] for x in xs, c in cs]
+for (T, S) in [(:TrackedArray, :TrackedArray), (:TrackedArray, :AbstractArray), (:AbstractArray, :TrackedArray)]
+    @eval Base.vcat(A::$T, B::$S, Cs::AbstractArray...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::AbstractArray...) = track(hcat, A, B, Cs...)
+end
+for (T, S) in [(:TrackedVector, :TrackedVector), (:TrackedVector, :AbstractVector), (:AbstractVector, :TrackedVector)]
+    @eval Base.vcat(A::$T, B::$S, Cs::AbstractVector...) = track(vcat, A, B, Cs...)
+end
+for (T, S) in [(:TrackedVecOrMat, :TrackedVecOrMat), (:TrackedVecOrMat, :AbstractVecOrMat), (:AbstractVecOrMat, :TrackedVecOrMat)]
+    @eval Base.vcat(A::$T, B::$S, Cs::AbstractVecOrMat...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::AbstractVecOrMat...) = track(hcat, A, B, Cs...)
+end
+for (T, S) in [(:TrackedArray, :Real), (:Real, :TrackedArray), (:TrackedArray, :TrackedArray)]
+    @eval Base.vcat(A::$T, B::$S, Cs::Union{AbstractArray, Real}...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::Union{AbstractArray, Real}...) = track(hcat, A, B, Cs...)
+end
+for (T, S) in [(:TrackedReal, :Real), (:Real, :TrackedReal), (:TrackedReal, :TrackedReal)]
+    @eval Base.vcat(A::$T, B::$S, Cs::Real...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::Real...) = track(hcat, A, B, Cs...)
 end
 
-for i = 0:2, c = combinations([:AbstractArray, :TrackedArray, :Number], i), f = [:hcat, :vcat]
-  cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::Union{TrackedArray,TrackedReal}, xs::Union{AbstractArray,Number}...) =
-    track($f, $(cnames...), x, xs...)
-end
+Base.vcat(A::TrackedArray) = track(vcat, A)
+Base.hcat(A::TrackedArray) = track(hcat, A)
 
-for i = 0:2, c = combinations([:AbstractVecOrMat, :TrackedVecOrMat], i), f = [:hcat, :vcat]
-  cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c{T}) for (x, c) in zip(cnames, c)]...), x::TrackedVecOrMat{T}, xs::AbstractVecOrMat{T}...) where T =
-    track($f, $(cnames...), x, xs...)
-end
-
-for i = 0:2, c = combinations([:AbstractVector, :TrackedVector], i), f = [:hcat, :vcat]
-  cnames = map(_ -> gensym(), c)
-  @eval Base.$f($([:($x::$c{T}) for (x, c) in zip(cnames, c)]...), x::TrackedVector{T}, xs::AbstractVector{T}...) where T =
-    track($f, $(cnames...), x, xs...)
-end
+Base.vcat(A::TrackedReal) = track(vcat, A)
+Base.hcat(A::TrackedReal) = track(hcat, A)
 
 @grad function vcat(xs...)
   vcat(data.(xs)...), function (Δ)
@@ -218,11 +220,11 @@ end
   end
 end
 
-for i = 0:2, c = combinations([:AbstractArray, :TrackedArray], i)
-  cnames = map(_ -> gensym(), c)
-  @eval Base.cat($([:($x::$c) for (x, c) in zip(cnames, c)]...), x::TrackedArray, xs::AbstractArray...; dims) =
-    track(cat, $(cnames...), x, xs..., dims = dims)
+for (T, S) in [(:TrackedArray, :TrackedArray), (:TrackedArray, :AbstractArray), (:AbstractArray, :TrackedArray)]
+    @eval Base.cat(A::$T, B::$S, Cs::AbstractArray...; dims) = track(cat, A, B, Cs...; dims = dims)
 end
+
+Base.cat(A::TrackedArray; dims) = track(cat, A; dims = dims)
 
 @grad function cat(Xs...; dims)
   cat(data.(Xs)..., dims = dims), function (Δ)
@@ -417,6 +419,9 @@ end
 
 LinearAlgebra.diagm(x::Pair{<:Integer, <:TrackedVector}) = track(diagm, x...)
 @grad diagm(i, x) = diagm(i => data(x)), Δ -> (nothing, diag(Δ, i))
+
+# fix Matrix(Diagonal(param([1,2,3]))) after https://github.com/JuliaLang/julia/pull/44615
+(::Type{Matrix})(d::Diagonal{<:Any,<:TrackedArray}) = diagm(0 => d.diag)
 
 x::TrackedMatrix  * y::AbstractMatrix = track(*, x, y)
 x::AbstractMatrix * y::TrackedMatrix  = track(*, x, y)

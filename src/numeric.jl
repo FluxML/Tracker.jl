@@ -13,6 +13,6 @@ function ngradient(f, xs::AbstractArray...)
   return grads
 end
 
-gradcheck(f, xs...) =
+gradcheck(f, xs...; rtol = 1e-5, atol = 1e-5) =
   all(isapprox.(ngradient(f, xs...),
-                data.(gradient(f, xs...)), rtol = 1e-5, atol = 1e-5))
+                data.(gradient(f, xs...)); rtol = rtol, atol = atol))
