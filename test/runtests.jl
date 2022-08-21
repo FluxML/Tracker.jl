@@ -19,7 +19,7 @@ end
 
 using Optimisers, Functors
 struct TwoThirds a; b; c; end  # evil test from Optimisers.jl
-Functors.@functor TwoThirds (a, c)
+@eval Functors.@functor TwoThirds (a, c)
 Optimisers.trainable(x::TwoThirds) = (a = x.a,)
 
 @testset "withgradient" begin
