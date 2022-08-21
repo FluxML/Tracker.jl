@@ -420,6 +420,9 @@ end
 LinearAlgebra.diagm(x::Pair{<:Integer, <:TrackedVector}) = track(diagm, x...)
 @grad diagm(i, x) = diagm(i => data(x)), Δ -> (nothing, diag(Δ, i))
 
+# fix Matrix(Diagonal(param([1,2,3]))) after https://github.com/JuliaLang/julia/pull/44615
+(::Type{Matrix})(d::Diagonal{<:Any,<:TrackedArray}) = diagm(0 => d.diag)
+
 x::TrackedMatrix  * y::AbstractMatrix = track(*, x, y)
 x::AbstractMatrix * y::TrackedMatrix  = track(*, x, y)
 x::TrackedMatrix  * y::TrackedMatrix  = track(*, x, y)
