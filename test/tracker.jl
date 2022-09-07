@@ -339,7 +339,8 @@ end
   end
 end
 
-@test gradtest(x -> Float64.(x), 5)
+# Upstream issue: https://github.com/JuliaDiff/ForwardDiff.jl/pull/538
+@test_broken gradtest(x -> Float64.(x), 5)
 
 @testset "equality & order" begin
     # TrackedReal
