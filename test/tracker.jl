@@ -4,7 +4,7 @@ using NNlib: conv, ∇conv_data, depthwiseconv
 using PDMats
 using Printf: @sprintf
 using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I, Diagonal
-using Statistics: mean, std
+using Statistics: mean, std, var
 using Random
 # using StatsBase
 
@@ -137,7 +137,7 @@ end
     @test hcat(1, param([1 2 3;])) isa TrackedArray
     @test vcat(param(1), 2) isa TrackedArray
   end
-  
+
   @testset "ambiguities" begin
     @test vcat(param([1, 2, 3]), [2,3]) isa TrackedArray
     @test vcat(param([1, 2, 3]), [2.0, 3.0]) isa TrackedArray
@@ -229,6 +229,12 @@ end
 @test gradtest(x -> std(x), rand(5,5))
 @test gradtest(x -> std(x, dims = 1), rand(5,5))
 @test gradtest(x -> std(x, dims = 1, corrected = false), rand(5,5))
+
+@test gradtest(x -> var(x), rand(5,5))
+@test gradtest(x -> var(x, dims = 1), rand(5,5))
+@test gradtest(x -> var(x, dims = 1, corrected = false), rand(5,5))
+x55 = rand(5,5)
+@test gradtest(x -> var(x, dims = 2, mean = mean(x55; dims=2)), x55)
 
 @test gradtest((x, y) -> x .* y, rand(5), rand(5))
 @test gradtest(dot, rand(5), rand(5))

@@ -4,6 +4,7 @@ using MacroTools
 using MacroTools: @q, @forward
 
 using DiffRules
+using ForwardDiff
 import LogExpFunctions
 import NaNMath
 import SpecialFunctions

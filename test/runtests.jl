@@ -33,4 +33,11 @@ Optimisers.trainable(x::TwoThirds) = (a = x.a,)
   @test g == (val = 6.0, grad = ((a = [1.0], b = nothing, c = nothing),))
 end
 
+using NNlib
+@testset "NNlib.within_gradient" begin
+  f_good(x) = NNlib.within_gradient(x) ? 10x : x
+  @test gradient(f_good, 1.0)[1] == 10
+  @test gradient(x -> sum(f_good(x)), [1.0])[1] == [10]
+end
+
 end  # overall @testset
