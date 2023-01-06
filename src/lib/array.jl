@@ -372,11 +372,6 @@ end
 
 Base.findfirst(xs::TrackedArray, args...) = findfirst(xs.data, args...)
 
-Statistics.mean(xs::TrackedArray; dims = :) = track(mean, xs, dims = dims)
-
-Base.maximum(xs::TrackedArray; dims = :) = track(maximum, xs, dims = dims)
-Base.minimum(xs::TrackedArray; dims = :) = track(minimum, xs, dims = dims)
-
 import LinearAlgebra: dot
 
 dot(xs::TrackedArray, ys::TrackedArray) = track(dot, xs, ys)
@@ -390,12 +385,32 @@ Statistics.std(x::TrackedArray; dims = :, mean = Statistics.mean(x, dims = dims)
 _std(x::TrackedArray, mean, dims, corrected) = sqrt.(sum((x .- mean).^2, dims = dims) ./ (mapreduce(i -> size(x,i),*, dims) - corrected))
 _std(x::TrackedArray, mean, ::Colon, corrected) = sqrt.(sum((x .- mean).^2) ./ (length(x) - corrected))
 
+Statistics.var(x::TrackedArray; dims=:, mean=Statistics.mean(data(x); dims), corrected::Bool=true) =
+  track(Statistics.var, x; dims, mean=data(mean), corrected)
+# from https://github.com/JuliaDiff/ChainRules.jl/blob/main/src/rulesets/Statistics/statistics.jl
+@grad function Statistics.var(x; dims, mean, corrected)
+  y = Statistics.var(data(x); corrected, mean, dims)
+  function variance_back(dy)
+    dx = 2 .* dy .* (data(x) .- mean) ./ (_denom(x, dims) - corrected)
+    (dx,)
+  end
+  y, variance_back
+end
+_denom(x, dims::Integer) = size(x, dims)
+_denom(x, dims::Colon) = length(x)
+_denom(x, dims) = prod(i->size(x, i), unique(dims), init=1)
+
 LinearAlgebra.norm(x::TrackedArray{T}, p::Real = 2) where T =
   (sum(abs.(x).^p) + eps(T))^(oneunit(T) / p) # avoid d(sqrt(x))/dx == Inf at 0
+
+Statistics.mean(xs::TrackedArray; dims = :) = track(mean, xs, dims = dims)
 
 @grad mean(xs; dims = :) = mean(data(xs), dims=dims), Δ -> (_backmean(xs,Δ,dims),)
 _backmean(xs, Δ, ::Colon) = zero(xs) .+ Δ ./ length(xs)
 _backmean(xs, Δ, dims) = zero(xs) .+ Δ ./ mapreduce(i -> size(data(xs),i),*,dims)
+
+Base.maximum(xs::TrackedArray; dims = :) = track(maximum, xs, dims = dims)
+Base.minimum(xs::TrackedArray; dims = :) = track(minimum, xs, dims = dims)
 
 @grad function maximum(xs; dims = dims)
   maximum(data(xs), dims = dims), function (Δ)
