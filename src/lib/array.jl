@@ -472,7 +472,10 @@ Base.:*(x::TrackedMatrix, y::Diagonal) = track(*, x, y)
 
 using NNlib
 import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, ∇conv_data, depthwiseconv, maxpool, meanpool
-import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims
+import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims, within_gradient
+
+within_gradient(::TrackedArray) = true
+within_gradient(::TrackedReal) = true
 
 softmax(xs::TrackedArray; dims=1) = track(softmax, xs; dims=dims)
 
