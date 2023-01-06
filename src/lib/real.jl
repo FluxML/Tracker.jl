@@ -8,6 +8,8 @@ TrackedReal(x::Real) = TrackedReal(x, Tracked{typeof(x)}(Call(), zero(x)))
 data(x::TrackedReal) = x.data
 tracker(x::TrackedReal) = x.tracker
 
+ForwardDiff.value(x::TrackedReal) = x.data
+
 track(f::Call, x::Real) = TrackedReal(x, Tracked{typeof(x)}(f, zero(x)))
 
 function back!(x::TrackedReal; once = true)
