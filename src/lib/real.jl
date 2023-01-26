@@ -72,10 +72,6 @@ for f in :[rand, randn, randexp].args
   @eval Random.$f(rng::AbstractRNG,::Type{TrackedReal{T}}) where {T} = param(rand(rng,T))
 end
 
-# Work around zero(π) not working, for some reason
-_zero(::Irrational) = nothing
-_zero(x) = zero(x)
-
 for (M, f, arity) in DiffRules.diffrules(; filter_modules=nothing)
   if !(isdefined(@__MODULE__, M) && isdefined(getfield(@__MODULE__, M), f))
     @warn "$M.$f is not available and hence rule for it can not be defined"
@@ -91,8 +87,8 @@ for (M, f, arity) in DiffRules.diffrules(; filter_modules=nothing)
     da, db = DiffRules.diffrule(M, f, :a, :b)
     @eval begin
       @grad $Mf(a::TrackedReal, b::TrackedReal) = $Mf(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
-      @grad $Mf(a::TrackedReal, b::Real) = $Mf(data(a), b), Δ -> (Δ * $da, _zero(b))
-      @grad $Mf(a::Real, b::TrackedReal) = $Mf(a, data(b)), Δ -> (_zero(a), Δ * $db)
+      @grad $Mf(a::TrackedReal, b::Real) = $Mf(data(a), b), Δ -> (Δ * $da, zero(b))
+      @grad $Mf(a::Real, b::TrackedReal) = $Mf(a, data(b)), Δ -> (zero(a), Δ * $db)
       $Mf(a::TrackedReal, b::TrackedReal)  = track($Mf, a, b)
       $Mf(a::TrackedReal, b::Real) = track($Mf, a, b)
       $Mf(a::Real, b::TrackedReal) = track($Mf, a, b)
