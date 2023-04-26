@@ -76,7 +76,17 @@ include("lib/array.jl")
 include("back.jl")
 include("numeric.jl")
 include("forward.jl")
-@init @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("lib/pdmats.jl")
+
+if !isdefined(Base, :get_extension)
+  using Requires
+end
+
+@static if !isdefined(Base, :get_extension)
+function __init__()
+  @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("../ext/TrackerPDMatsExt.jl")
+end
+end
+
 
 """
     hook(f, x) -> x′

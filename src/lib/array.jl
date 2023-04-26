@@ -630,8 +630,6 @@ function Base.copy(bc::Broadcasted{TrackedStyle})
   ∇broadcast(bc2.f, bc1.args...)
 end
 
-using Requires
-
 # https://github.com/FluxML/Flux.jl/issues/353
 @inline function make_makeargs(makeargs, t::Tuple{<:Broadcasted,Vararg{Any}})
   bc = t[1]
