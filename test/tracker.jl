@@ -2,6 +2,7 @@ using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
 using PDMats
+using SpecialFunctions: logabsgamma
 using Printf: @sprintf
 using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I, Diagonal
 using Statistics: mean, std, var
@@ -504,3 +505,7 @@ end
     @test size(y) == (5, 3)
 end
 
+@testset "logabsgamma" begin
+  @test gradcheck(x -> logabsgamma(only(x))[1], rand(1))
+  @test gradcheck(x -> logabsgamma(only(x))[2], rand(1))
+end
