@@ -149,3 +149,13 @@ end
 
 collectmemaybe(xs::AbstractArray{>:TrackedReal}) = collect(xs)
 collectmemaybe(xs::AbstractArray{<:TrackedReal}) = collect(xs)
+
+# `logabsgamma` returns a tuple and hence its derivative is not defined in DiffRules
+SpecialFunctions.logabsgamma(x::TrackedReal) = track(SpecialFunctions.logabsgamma, x)
+@grad function SpecialFunctions.logabsgamma(x::Real)
+  data_x = data(x)
+  function logabsgamma_pullback(Δ)
+    return (SpecialFunctions.digamma(data_x) * first(Δ),)
+  end
+  return SpecialFunctions.logabsgamma(data_x), logabsgamma_pullback
+end
