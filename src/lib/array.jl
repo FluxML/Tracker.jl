@@ -312,6 +312,7 @@ function _kron(mat1::AbstractMatrix,mat2::AbstractMatrix)
 
     return reshape(mat1_rsh.*mat2_rsh, (m1*m2,n1*n2))
 end
+_kron(a::AbstractVector, b::AbstractVector) = vec(_kron(reshape(a, :, 1), reshape(b, :, 1)))
 
 Base.kron(a::TrackedMatrix, b::TrackedMatrix)  = _kron(a, b)
 Base.kron(a::TrackedMatrix, b::AbstractMatrix) = _kron(a, b)
