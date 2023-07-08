@@ -314,9 +314,9 @@ function _kron(mat1::AbstractMatrix,mat2::AbstractMatrix)
 end
 _kron(a::AbstractVector, b::AbstractVector) = vec(_kron(reshape(a, :, 1), reshape(b, :, 1)))
 
-Base.kron(a::TrackedMatrix, b::TrackedMatrix)  = _kron(a, b)
-Base.kron(a::TrackedMatrix, b::AbstractMatrix) = _kron(a, b)
-Base.kron(a::AbstractMatrix, b::TrackedMatrix) = _kron(a, b)
+Base.kron(a::TrackedVecOrMat, b::TrackedVecOrMat)  = _kron(a, b)
+Base.kron(a::TrackedVecOrMat, b::AbstractVecOrMat) = _kron(a, b)
+Base.kron(a::AbstractVecOrMat, b::TrackedVecOrMat) = _kron(a, b)
 
 
 inv(A::TrackedArray) = Tracker.track(inv, A)
