@@ -24,6 +24,11 @@ grad(x) = grad(tracker(x))
 grad(::Nothing) = nothing
 data(x) = x
 
+"""
+  Call{F,As<:Tuple}
+
+Structure to keep the function `func`::F and it's arguments `args`.
+"""
 struct Call{F,As<:Tuple}
   func::F
   args::As
@@ -37,10 +42,25 @@ a::Call == b::Call = a.func == b.func && a.args == b.args
 
 @inline (c::Call)() = c.func(data.(c.args)...)
 
+"""
+  Tracked{T}
+  
+Structure used to keep the operations applied over variables. 
+Represents a node in the graph. To navigate in the graph, use the `f::Call` field. 
+
+# Parameters
+  - `ref`: variable used during the graph traversals, how many times we reached a node
+  - `f::Call`: the Call object containing the recorded function and arguments; kindly note the pullback function is stored instead
+              of the original function; e.g. we store the pullback of + and not the + function itself
+  - `isleaf::Bool`: refers to the node in the built graphs; true if the node (tracked object) is leaf
+  - `grad::T`: use to store the value of the gradient. Note the gradient is not always stored. 
+               For example if the graph is just a straigh-line, no branches, then we simply back-propagate the gradients 
+               from the output to the input params. Only the leafs in the graph (our input params) will store gradients in this case.
+"""
 mutable struct Tracked{T}
-  ref::UInt32
+  ref::UInt32  
   f::Call
-  isleaf::Bool
+  isleaf::Bool 
   grad::T
   Tracked{T}(f::Call) where T = new(0, f, false)
   Tracked{T}(f::Call, grad::T) where T = new(0, f, false, grad)

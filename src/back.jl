@@ -16,6 +16,11 @@ zero_grad!(x::AbstractArray) = (x .= 0)
 
 scan(c::Call) = foreach(scan, c.args)
 
+"""
+Recursivelly scan all tracked data in the  and sets the gradients of all tracked data to zero.
+Also counts the `ref`, how many times a node (a Tracked object) is hit during traversal. This is equivalent to
+the number of children of this node. This `ref` field of tracked objects is later used in the `back` method. 
+"""
 function scan(x::Tracked)
   x.isleaf && return
   ref = x.ref += 1
