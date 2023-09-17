@@ -43,7 +43,7 @@ function back_(c::Call, Δ, once)
   foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
 end
 
-back_(::Call{Nothing}, Δ, once) = nothing
+back_(::Call{Nothing}, Δ, once) = nothing # TODO: can we really get here?
 back_(::Call{Missing}, Δ, once) = error("`back!` was already used")
 
 accum!(x, Δ) = x .+ Δ
@@ -57,16 +57,16 @@ function back(x::Tracked, Δ, once)
   elseif ref > 0
     x.grad = Δ
   else
-    Δ
+    Δ # no need to store the gradient in this case, we want to save memory
   end
   if ref == 0
     back_(x.f, grad, once)
-    once && !x.isleaf && (x.f = Call(missing, ()))
+    once && !x.isleaf && (x.f = Call(missing, ())) # we want to prevent accidental multi-calls over the same graph, so set the x.f call to missing.
   end
   return
 end
 
-back(::Nothing, Δ, once) = return
+back(::Nothing, Δ, once) = return # TODO: can we really get here?
 
 # Interface methods
 

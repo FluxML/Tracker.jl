@@ -53,9 +53,13 @@ Represents a node in the graph. To navigate in the graph, use the `f::Call` fiel
   - `f::Call`: the Call object containing the recorded function and arguments; kindly note the pullback function is stored instead
               of the original function; e.g. we store the pullback of + and not the + function itself
   - `isleaf::Bool`: refers to the node in the built graphs; true if the node (tracked object) is leaf
-  - `grad::T`: use to store the value of the gradient. Note the gradient is not always stored. 
+  - `grad::T`: use to store the value of the back-propagated gradient. 
+               To further propagate this gradient, let's call it `∇`, the algorithm applies the Jacobian `∇2 = f.func(∇) = J(f_original)*∇` (the pullback). 
+               This new gradient is passed to the "children" of `f` stored in `f.args`.               
+               Note the gradient is not always stored. 
                For example if the graph is just a straigh-line, no branches, then we simply back-propagate the gradients 
                from the output to the input params. Only the leafs in the graph (our input params) will store gradients in this case.
+               See the `function back(x::Tracked, Δ, once)` for more details.
 """
 mutable struct Tracked{T}
   ref::UInt32  
