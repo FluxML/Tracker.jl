@@ -24,6 +24,13 @@ function Base.show(io::IO, ps::Params)
   print(io, "])")
 end
 
+"""
+  Grads
+Structure to hold gradients of various objects.
+
+#Parameters:
+  - `grads::IdDict{Any,Any}`: dictionary to map the objects to their gradients
+"""
 struct Grads
   grads::IdDict{Any,Any}
 end
@@ -34,6 +41,11 @@ Grads() = Grads(IdDict())
 
 @forward Grads.grads Base.setindex!, Base.haskey, Base.length, Base.iterate
 
+"""
+For each parameter `p`` in `ps`, creates a tracked gradient (of type `TrackedArray` etc.), 
+because we are going to record the operations on it.
+`tracker(p)` is mapped to this gradient via an  `IdDict`.
+"""
 Grads(ps::Params) = Grads(IdDict(tracker(p) => init_grad(data(p)) for p in ps))
 
 Base.getindex(g::Grads, x::Tracked) = g.grads[x]

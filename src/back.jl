@@ -10,6 +10,10 @@ end
 
 # In-place gradients
 
+"""
+For `TrackedArray` the method generates another `TrackerArray`, a leaf, and set the data to zeros.
+Similar for `TrackedReal` and `TrackedTuple`.
+"""
 init_grad(x) = zero(x)
 zero_grad!(x) = zero(x)
 zero_grad!(x::AbstractArray) = (x .= 0)
@@ -115,13 +119,17 @@ function back_(g::Grads, c::Call, Δ)
   Δs = c.func(Δ)
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
-  foreach((x, Δ) -> back(g, x, Δ), c.args, Δs)
+  # foreach((x, Δ) -> back(g, x, Δ), c.args, Δs)
+  # TODO: re-enable the above foreach instead
+  for (x, Δ_) in zip(c.args, Δs)
+    back(g, x, Δ_)
+  end
 end
 
 back_(g::Grads, ::Call{Nothing}, Δ) = nothing
 
 function back(g::Grads, x::Tracked, Δ)
-  x.isleaf && (accum!(g, x, Δ); return)
+  x.isleaf && (accum!(g, x, Δ); return) # note the x.grad field is not used here, only gradient g[x]
   ref = x.ref -= 1
   if ref > 0 || haskey(g, x)
     accum!(g, x, Δ)

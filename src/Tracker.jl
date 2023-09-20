@@ -112,6 +112,47 @@ end
 end
 
 
+"Function to print the graph of an Call"
+function print_graph_(io::IO, f::Call, indent, indent_all)
+  println(io, indent_all*"Call=")
+  indent_all *= indent
+
+  println(io, indent_all, "f")
+  if !isnothing(f.func) && !isnothing(f.func)
+    println(io, indent*indent_all, f.func)
+    fnms = fieldnames(typeof(f.func))
+    for fnm in fnms
+      println(io, indent*indent*indent_all*"func."*string(fnm)*"=", getfield(f.func, fnm))
+    end
+  end
+  
+  println(io, indent_all*"args")
+  for arg in f.args
+    if istracked(arg)
+      print_graph_(io, arg, indent, indent*indent_all)
+    else
+      println(io, indent*indent_all, arg)
+    end
+  end
+end
+
+"Function to print the graph of an Tracked"
+function print_graph_(io::IO, x::Tracked, indent, indent_all)
+  println(io, indent_all*"Tracker=")
+  indent_all *= indent
+  println(io, indent_all*"isleaf=", x.isleaf)
+  grad = isdefined(x, :grad) ? x.grad : undef
+  println(io, indent_all*"grad=", grad)
+  print_graph_(io, x.f, indent, indent_all)
+end
+
+"Function to print the graph of an TrackedArray, TrackedReal, TrackedTuple}"
+function print_graph(io::IO, x, indent="\t")
+  println(io, "TrackedData")
+  println(io, indent*"data=", data(x))  
+  print_graph_(io, tracker(x), indent, indent)
+end
+
 """
     hook(f, x) -> x′
 
