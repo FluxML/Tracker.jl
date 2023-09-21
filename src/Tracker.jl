@@ -4,6 +4,7 @@ using MacroTools
 using MacroTools: @q, @forward
 
 using DiffRules
+using ChainRules
 using ForwardDiff
 import LogExpFunctions
 import NaNMath
@@ -79,10 +80,18 @@ track(f::Call, x) = Tracked{typeof(x)}(f)
 
 function _forward end
 
+# function track(f::F, xs...; kw...) where F
+#   y, back = _forward(f, xs...; kw...)
+#   track(Call(back, tracker.(xs)), y)
+# end
+
 function track(f::F, xs...; kw...) where F
-  y, back = _forward(f, xs...; kw...)
+  datas = data.(xs)
+  @info "Chainrules for $f"
+  y, back = ChainRules.rrule(f, datas...; kw...)
   track(Call(back, tracker.(xs)), y)
 end
+
 
 macro grad(ex)
   @capture(shortdef(ex), (name_(args__) = body_) |
@@ -147,7 +156,7 @@ function print_graph_(io::IO, x::Tracked, indent, indent_all)
 end
 
 "Function to print the graph of an TrackedArray, TrackedReal, TrackedTuple}"
-function print_graph(io::IO, x, indent="\t")
+function print_graph(io::IO, x; indent="-")
   println(io, "TrackedData")
   println(io, indent*"data=", data(x))  
   print_graph_(io, tracker(x), indent, indent)

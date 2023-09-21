@@ -1,4 +1,5 @@
 import Base: *, reduce
+import Base: +
 
 import LinearAlgebra
 import LinearAlgebra: inv, det, logdet, logabsdet, \, /
@@ -450,6 +451,8 @@ x::TrackedMatrix  * y::TrackedVector  = track(*, x, y)
 x::TrackedVector  * y::AbstractVector = track(*, x, y)
 x::AbstractVector * y::TrackedVector  = track(*, x, y)
 x::TrackedVector  * y::TrackedVector  = track(*, x, y)
+
+x::TrackedArray + y::TrackedArray = track(+, x, y)
 
 # Ambiguity fixes
 Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedMatrix) where {T} = track(*, x, y)
