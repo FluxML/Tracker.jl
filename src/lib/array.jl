@@ -452,6 +452,7 @@ x::TrackedVector  * y::AbstractVector = track(*, x, y)
 x::AbstractVector * y::TrackedVector  = track(*, x, y)
 x::TrackedVector  * y::TrackedVector  = track(*, x, y)
 
+# TODO handle this
 x::TrackedArray + y::TrackedArray = track(+, x, y)
 
 # Ambiguity fixes
@@ -484,8 +485,9 @@ Base.:*(x::Diagonal, y::TrackedVector) = track(*, x, y)
 Base.:*(x::Diagonal, y::TrackedMatrix) = track(*, x, y)
 Base.:*(x::TrackedMatrix, y::Diagonal) = track(*, x, y)
 
-@grad a::AbstractVecOrMat * b::AbstractVecOrMat =
-  data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
+# TODO I guess we have these definitions in ChainRules
+# @grad a::AbstractVecOrMat * b::AbstractVecOrMat =
+#   data(a)*data(b), Δ -> (Δ * transpose(b), transpose(a) * Δ)
 
 # NNlib
 

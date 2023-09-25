@@ -41,9 +41,8 @@ function scan(x)
 end
 
 function back_(c::Call, Δ, once)
-  # the rrule pullback returns (NoTangent(), out_grads)
+  # the rrule pullback returns (NoTangent(), out_grads) for functions
   # TODO: what happens with structs as functions
-  # TODO: do we need to unthunk?
   Δs = c.func(Δ)[2:end] 
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
@@ -119,9 +118,8 @@ end
 # Out-of-place gradients
 
 function back_(g::Grads, c::Call, Δ)
-  # the rrule pullback returns (NoTangent(), out_grads)
+  # the rrule pullback returns (NoTangent(), out_grads) for functions
   # TODO: what happens with structs as functions
-  # TODO: do we need to unthunk?
   Δs = c.func(Δ)[2:end]
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")

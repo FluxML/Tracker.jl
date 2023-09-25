@@ -1,3 +1,7 @@
+# TODO: for chainrules
+import ChainRules: rrule
+import Base: +, -, *, /
+
 mutable struct TrackedReal{T<:Real} <: Real
   data::T
   tracker::Tracked{T}
@@ -70,28 +74,13 @@ for f in :[rand, randn, randexp].args
   @eval Random.$f(rng::AbstractRNG,::Type{TrackedReal{T}}) where {T} = param(rand(rng,T))
 end
 
-for (M, f, arity) in DiffRules.diffrules(; filter_modules=nothing)
-  if !(isdefined(@__MODULE__, M) && isdefined(getfield(@__MODULE__, M), f))
-    @warn "$M.$f is not available and hence rule for it can not be defined"
-    continue  # Skip rules for methods not defined in the current scope
-  end
-  Mf = :($M.$f)
-  if arity == 1
-    @eval begin
-      @grad $Mf(a::Real) = $Mf(data(a)), Δ -> (Δ * $(DiffRules.diffrule(M, f, :a)),)
-      $Mf(a::TrackedReal) = track($Mf, a)
-    end
-  elseif arity == 2
-    da, db = DiffRules.diffrule(M, f, :a, :b)
-    @eval begin
-      @grad $Mf(a::TrackedReal, b::TrackedReal) = $Mf(data(a), data(b)), Δ -> (Δ * $da, Δ * $db)
-      @grad $Mf(a::TrackedReal, b::Real) = $Mf(data(a), b), Δ -> (Δ * $da, zero(b))
-      @grad $Mf(a::Real, b::TrackedReal) = $Mf(a, data(b)), Δ -> (zero(a), Δ * $db)
-      $Mf(a::TrackedReal, b::TrackedReal)  = track($Mf, a, b)
-      $Mf(a::TrackedReal, b::Real) = track($Mf, a, b)
-      $Mf(a::Real, b::TrackedReal) = track($Mf, a, b)
-    end
-  end
+# TODO: for chainrules
+for op in [:+, :-, :*, :/]
+  @eval Base.$op(x::TrackedReal, y::TrackedReal) = track(Base.$op, x, y)
+end
+
+for op in [:sin, :cos]
+  @eval Base.$op(x::TrackedReal) = track(Base.$op, x)
 end
 
 # Eliminating ambiguity
@@ -123,10 +112,11 @@ end
 Base.length(x::TrackedTuple) = length(data(x))
 
 Base.getindex(xs::TrackedTuple, i::Integer) = track(getindex, xs, i)
-
-@grad function getindex(xs::TrackedTuple, i)
-  data(xs)[i], Δ -> (ntuple(j -> i == j ? Δ : 0, length(xs)), nothing)
-end
+# TODO defined a rrule for getindex
+rrule(::typeof(getindex), xs::TrackedTuple, i) = data(xs)[i], Δ -> (ntuple(j -> i == j ? Δ : 0, length(xs)), nothing)
+# @grad function getindex(xs::TrackedTuple, i)
+#   data(xs)[i], Δ -> (ntuple(j -> i == j ? Δ : 0, length(xs)), nothing)
+# end
 
 # Array collection
 

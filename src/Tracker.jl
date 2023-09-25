@@ -3,8 +3,8 @@ module Tracker
 using MacroTools
 using MacroTools: @q, @forward
 
-using DiffRules
 using ChainRules
+using ChainRules: rrule
 using ForwardDiff
 import LogExpFunctions
 import NaNMath
@@ -80,19 +80,16 @@ track(f::Call, x) = Tracked{typeof(x)}(f)
 
 function _forward end
 
-# function track(f::F, xs...; kw...) where F
-#   y, back = _forward(f, xs...; kw...)
-#   track(Call(back, tracker.(xs)), y)
-# end
-
 function track(f::F, xs...; kw...) where F
-  datas = data.(xs)
   @info "Chainrules for $f"
-  y, back = ChainRules.rrule(f, datas...; kw...)
+  # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
+  y, back = rrule(f, data.(xs)...; kw...)
   track(Call(back, tracker.(xs)), y)
 end
 
 
+# TODO: this function is used to define gradients for a couple of functions, especially in arrays, which are not used,
+# but we might want to define rrules for them, so we keep this code for a while
 macro grad(ex)
   @capture(shortdef(ex), (name_(args__) = body_) |
                          (name_(args__) where {T__} = body_)) || error("Need a function definition")
@@ -109,6 +106,8 @@ include("lib/array.jl")
 include("back.jl")
 include("numeric.jl")
 include("forward.jl")
+
+TrackedTypes = Union{TrackedReal, TrackedArray, TrackedTuple}
 
 if !isdefined(Base, :get_extension)
   using Requires
@@ -190,16 +189,22 @@ end
 
 nobacksies(f, x) = track(nobacksies, f, x)
 nobacksies(f, xs::Tuple) = map(x -> nobacksies(f, x), xs)
-@grad nobacksies(f::Symbol, x) = data(x), Δ -> error("Nested AD not defined for $f")
-@grad nobacksies(f::String, x) = data(x), Δ -> error(f)
+# TODO: do we need to define a rrule for nobacksies?
+rrule(::typeof(nobacksies), f::Symbol, x) = data(x), Δ -> error("Nested AD not defined for $f")
+rrule(::typeof(nobacksies), f::String, x) = data(x), Δ -> error(f)
+# @grad nobacksies(f::Symbol, x) = data(x), Δ -> error("Nested AD not defined for $f")
+# @grad nobacksies(f::String, x) = data(x), Δ -> error(f)
 
 param(x::Number) = TrackedReal(float(x))
 param(xs::AbstractArray) = TrackedArray(float.(xs))
 
-@grad identity(x) = data(x), Δ -> (Δ,)
 param(x::TrackedReal) = track(identity, x)
 param(x::TrackedArray) = track(identity, x)
+# TODO: do we need to define a rrule for identity?
+# @grad identity(x) = data(x), Δ -> (Δ,)
+rrule(::typeof(identity), x::TrackedTypes) = data(x), Δ->(NoTangent(), Δ)
 
+# TODO: where is this code used?
 import Adapt: adapt, adapt_structure
 
 adapt_structure(T, xs::TrackedArray) = param(adapt(T, data(xs)))
