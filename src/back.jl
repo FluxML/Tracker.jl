@@ -91,7 +91,9 @@ end
 
 function extract_grad!(x)
   x̄ = copy(grad(x))
-  x̄ = nobacksies("Use `gradient(...; nest = true)` for nested derivatives", x̄)
+  # TODO currently we return an array, not a tracked array
+  # it's perhaps best to return tracked array/real only for nested derivatives
+  # x̄ = nobacksies("Use `gradient(...; nest = true)` for nested derivatives", x̄)
   tracker(x).grad = zero_grad!(grad(x))
   return x̄
 end

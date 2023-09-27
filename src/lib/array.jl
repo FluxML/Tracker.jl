@@ -454,6 +454,7 @@ x::TrackedVector  * y::TrackedVector  = track(*, x, y)
 
 # TODO handle this
 x::TrackedArray + y::TrackedArray = track(+, x, y)
+x::Real * y::TrackedArray = track(*, x, y)
 
 # Ambiguity fixes
 Base.:*(x::Transpose{T,<:AbstractVector{T}},y::TrackedMatrix) where {T} = track(*, x, y)
