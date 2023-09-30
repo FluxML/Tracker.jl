@@ -14,7 +14,7 @@ tracker(x::TrackedReal) = x.tracker
 
 ForwardDiff.value(x::TrackedReal) = x.data
 
-track(f::Call, x::Real) = TrackedReal(x, Tracked{typeof(x)}(f, zero(x)))
+track_ctor(f::Call, x::Real) = TrackedReal(x, Tracked{typeof(x)}(f, zero(x)))
 
 function back!(x::TrackedReal; once = true)
     isinf(x) && error("Loss is Inf")
@@ -86,6 +86,7 @@ end
 # Eliminating ambiguity
 import Base:^
 
+# TODO: take care of this POW
 ^(a::TrackedReal, b::Integer) = track(^, a, b)
 
 # Tuples
@@ -102,7 +103,7 @@ accum!(x::Tuple, Δ::Tuple) = accum!.(x, Δ)
 init_grad(x::Tuple) = init_grad.(x)
 zero_grad!(x::Tuple) = zero_grad!.(x)
 
-track(f::Call, xs::Tuple) = TrackedTuple(xs, Tracked{typeof(xs)}(f, zero.(xs)))
+track_ctor(f::Call, xs::Tuple) = TrackedTuple(xs, Tracked{typeof(xs)}(f, zero.(xs)))
 
 function Base.show(io::IO, xs::TrackedTuple)
   show(io, data(xs))
@@ -112,11 +113,6 @@ end
 Base.length(x::TrackedTuple) = length(data(x))
 
 Base.getindex(xs::TrackedTuple, i::Integer) = track(getindex, xs, i)
-# TODO defined a rrule for getindex
-rrule(::typeof(getindex), xs::TrackedTuple, i) = data(xs)[i], Δ -> (ntuple(j -> i == j ? Δ : 0, length(xs)), nothing)
-# @grad function getindex(xs::TrackedTuple, i)
-#   data(xs)[i], Δ -> (ntuple(j -> i == j ? Δ : 0, length(xs)), nothing)
-# end
 
 # Array collection
 
@@ -140,12 +136,4 @@ end
 collectmemaybe(xs::AbstractArray{>:TrackedReal}) = collect(xs)
 collectmemaybe(xs::AbstractArray{<:TrackedReal}) = collect(xs)
 
-# `logabsgamma` returns a tuple and hence its derivative is not defined in DiffRules
 SpecialFunctions.logabsgamma(x::TrackedReal) = track(SpecialFunctions.logabsgamma, x)
-@grad function SpecialFunctions.logabsgamma(x::Real)
-  data_x = data(x)
-  function logabsgamma_pullback(Δ)
-    return (SpecialFunctions.digamma(data_x) * first(Δ),)
-  end
-  return SpecialFunctions.logabsgamma(data_x), logabsgamma_pullback
-end

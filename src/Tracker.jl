@@ -4,7 +4,7 @@ using MacroTools
 using MacroTools: @q, @forward
 
 using ChainRules
-using ChainRules: rrule
+using ChainRules: rrule, RuleConfig, HasReverseMode
 using ForwardDiff
 import LogExpFunctions
 import NaNMath
@@ -13,6 +13,7 @@ import SpecialFunctions
 import Printf
 
 import Base: ==
+import Base: broadcasted
 
 export TrackedArray, TrackedVector, TrackedMatrix, Params, gradient,
   jacobian, hessian, param, back!, withgradient
@@ -76,17 +77,9 @@ istracked(x::Tracked) = true
 isleaf(x::Tracked) = x.f == Call()
 grad(x::Tracked) = x.grad
 
-track(f::Call, x) = Tracked{typeof(x)}(f)
+track_ctor(f::Call, x) = Tracked{typeof(x)}(f)
 
 function _forward end
-
-function track(f::F, xs...; kw...) where F
-  @info "Chainrules for $f"
-  # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
-  y, back = rrule(f, data.(xs)...; kw...)
-  track(Call(back, tracker.(xs)), y)
-end
-
 
 # TODO: this function is used to define gradients for a couple of functions, especially in arrays, which are not used,
 # but we might want to define rrules for them, so we keep this code for a while
@@ -99,6 +92,16 @@ macro grad(ex)
   @q(Tracker._forward($(args...)) where $(T...) = $body) |> esc
 end
 
+if !isdefined(Base, :get_extension)
+  using Requires
+end
+
+@static if !isdefined(Base, :get_extension)
+function __init__()
+  @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("../ext/TrackerPDMatsExt.jl")
+end
+end
+
 include("idset.jl")
 include("params.jl")
 include("lib/real.jl")
@@ -109,14 +112,61 @@ include("forward.jl")
 
 TrackedTypes = Union{TrackedReal, TrackedArray, TrackedTuple}
 
-if !isdefined(Base, :get_extension)
-  using Requires
+# we define this in order to access rrule for broadcasted
+struct TrackerRuleConfig <: RuleConfig{HasReverseMode} end
+const tracker_rule_cfg = TrackerRuleConfig()
+const dummy_broadcast_style = Base.BroadcastStyle(Float64) # requested by rrule for broadcasted, which is only to please Zygote
+
+# dedicated track method for broadcasted
+function track(bf::typeof(Base.broadcasted), f::F, xs...; kw...) where F
+  @info "Chainrules for $bf($f, $xs)"
+  y, _back = rrule(tracker_rule_cfg, bf, dummy_broadcast_style, f, data.(xs)...; kw...)
+  back = Δ->_back(Δ)[4:end] # TODO: what happens if f is a struct?
+  track_ctor(Call(back, tracker.(xs)), y)
 end
 
-@static if !isdefined(Base, :get_extension)
-function __init__()
-  @require PDMats="90014a1f-27ba-587c-ab20-58faa44d9150" include("../ext/TrackerPDMatsExt.jl")
+# Arithmetic operations +, -, *, ^ have a dedicated specializations in ChainRules; are these faster? we use them here
+for f in (:+, :-, :*, :/)
+  @eval begin
+    function track(bf::typeof(Base.broadcasted), ::typeof($f), xs...; kw...)
+      @info "Chainrules for $bf($($f), $xs), specialized"
+      _y, _back = rrule(bf, $f, data.(xs)...; kw...)
+      y = Base.materialize(_y)
+      back = Δ->_back(Δ)[3:end]
+      track_ctor(Call(back, tracker.(xs)), y)
+    end
+  end
 end
+
+# ^2 also has a dedicated specialization in ChainRules
+function track(bf::typeof(Base.broadcasted), lp::typeof(Base.literal_pow), ::typeof(^), x::TrackedTypes, ::Val{2})
+  @info "Chainrules for $bf($lp, ^, $x, 2), specialized"
+  _y, _back = rrule(bf, lp, ^, data(x), Val(2))
+  y = Base.materialize(_y)
+  back = Δ->_back(Δ)[4:4] # 4:4 because the output shall be a tuple, not a scalar
+  track_ctor(Call(back, (tracker(x), )), y)
+end
+
+# TODO: we can better define a method to select the range of interested values, e.g. without NoTangent()
+# option1: specialize it for various methods
+# option2: simply scan the result and select values without NoTangent(), shall be consecutive
+
+function track(::typeof(Base.getindex), xs...; kw...)
+  @info "Chainrules for Base.getindex"
+  # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
+  y, _back = rrule(Base.getindex, data.(xs)...; kw...)
+  back = Δ->_back(Δ)[2:2]
+  track_ctor(Call(back, tracker.(xs)), y)
+end
+
+function track(f::F, xs...; kw...) where F
+  @info "Chainrules for $f"
+  # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
+  y, _back = rrule(f, data.(xs)...; kw...)
+  # the rrule pullback returns (NoTangent(), out_grads) for functions
+  # TODO: what happens with structs as functions?
+  back = Δ->_back(Δ)[2:end]
+  track_ctor(Call(back, tracker.(xs)), y)
 end
 
 

@@ -1,7 +1,7 @@
 using Tracker, Test, NNlib
 using Tracker: TrackedReal, gradient, gradcheck, grad, checkpoint, forwarddiff
 using NNlib: conv, ∇conv_data, depthwiseconv
-using PDMats
+# using PDMats
 using SpecialFunctions: logabsgamma
 using Printf: @sprintf
 using LinearAlgebra: diagm, dot, LowerTriangular, norm, det, logdet, logabsdet, I, Diagonal
@@ -12,41 +12,66 @@ using Random
 gradtest(f, xs::AbstractArray...; kw...) = gradcheck((xs...) -> sum(sin.(f(xs...))), xs...; kw...)
 gradtest(f, dims...; kw...) = gradtest(f, rand.(Float64, dims)...; kw...)
 
-@testset "gradtests 1" begin
+##
+f2(x, y) = prod(x+2*y)
+dx = gradient(f2, [3, 4], [7, 9])
 
-@test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
-@test gradtest((x, W) -> σ.(W*x), 5, (2,5))
-@test gradtest((x, W, b) -> σ.(W*x .+ b), (5,3), (2,5), 2)
-@test gradtest((x, W, b) -> logσ.(W*x .+ b), 5, (2,5), 2)
-@test gradtest((x, W, b) -> logσ.(W*x .+ b), (5,3), (2,5), 2)
-@test gradtest((w, x) -> w'*x, randn(Float64,10, 2), randn(Float64,10))
-@test gradtest((w, x) -> w*x', randn(Float64,5,5), randn(Float64,5,5))
-let A=Diagonal(randn(5, 5))
+
+f3_ = (x, W, b) -> σ.(W*x .+ b)
+f3 = (x, W, b)->sum(sin.(f3_(x, W, b)))
+x = param(rand(5))
+W = param(rand(2, 5))
+b = param(rand(2))
+y = sum(W*x + b)
+z = sum(sin.(W*x .+ b))
+W*x .+ b
+@run Tracker.back!(z)
+@run gradient(f3, rand(5), rand(2, 5), rand(2))
+# f3(rand(5), rand(2, 5), rand(2))
+
+gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
+
+@testset "gradtests 0" begin
+  @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
+end
+
+@testset "gradtests 1" begin
+  @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
+  @test gradtest((x, W) -> σ.(W*x), 5, (2,5))
+  @test gradtest((x, W, b) -> σ.(W*x .+ b), (5,3), (2,5), 2)
+  @test gradtest((x, W, b) -> logσ.(W*x .+ b), 5, (2,5), 2)
+  @test gradtest((x, W, b) -> logσ.(W*x .+ b), (5,3), (2,5), 2)
+  @test gradtest((w, x) -> w'*x, randn(Float64,10, 2), randn(Float64,10))
+  @test gradtest((w, x) -> w*x', randn(Float64,5,5), randn(Float64,5,5))
+  let A=Diagonal(randn(5, 5))
     @test gradtest(x-> A * x, (5,))
     @test gradtest(x-> A * x, (5, 5))
     @test gradtest(x-> x * A, (5, 5))
+  end
+  @test gradtest(x -> sum(x, dims = (2, 3)), (3,4,5))
+  @test gradtest(x -> sum(x, dims = 1), randn(Float64,2,3))
+  @test gradtest(x -> sum(x, dims = [1,2]), randn(Float64,2,3))
+  @test gradtest(x -> sum(x), randn(Float64,2,3))
+  @test gradtest(x -> prod(x, dims=(2, 3)), (3,4,5))
+  @test gradtest(x -> prod(x), (3,4,5))
 end
-@test gradtest(x -> sum(x, dims = (2, 3)), (3,4,5))
-@test gradtest(x -> sum(x, dims = 1), randn(Float64,2,3))
-@test gradtest(x -> sum(x, dims = [1,2]), randn(Float64,2,3))
-@test gradtest(x -> sum(x), randn(Float64,2,3))
-@test gradtest(x -> prod(x, dims=(2, 3)), (3,4,5))
-@test gradtest(x -> prod(x), (3,4,5))
 
-@test gradtest(x -> softmax(x; dims = 1).*(1:3), 3)
-@test gradtest(x -> softmax(x; dims = 1).*(1:3), (3,5))
-@test gradtest(x -> softmax(x; dims = 2).*(1:3), (3,5))
-@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), 3)
-@test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), (3,5))
-@test gradtest(x -> logsoftmax(x; dims = 2).*(1:3), (3,5))
+@testset "gradtests 2" begin
+  @test gradtest(x -> softmax(x; dims = 1).*(1:3), 3)
+  @test gradtest(x -> softmax(x; dims = 1).*(1:3), (3,5))
+  @test gradtest(x -> softmax(x; dims = 2).*(1:3), (3,5))
+  @test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), 3)
+  @test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), (3,5))
+  @test gradtest(x -> logsoftmax(x; dims = 2).*(1:3), (3,5))
 
-@test gradtest(x -> x', rand(5))
+  @test gradtest(x -> x', rand(5))
 
-@test gradtest(det, (4, 4))
-@test gradtest(logdet, map((x) -> x*x', (rand(4, 4),))[1])
-@test gradtest((x) -> logabsdet(x)[1], (4, 4))
-
+  @test gradtest(det, (4, 4))
+  @test gradtest(logdet, map((x) -> x*x', (rand(4, 4),))[1])
+  @test gradtest((x) -> logabsdet(x)[1], (4, 4))
 end # @testset gradtests
+
+@test gradtest((x) -> logabsdet(x)[1], (4, 4))
 
 @testset "indexing & slicing" begin
   @test gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
