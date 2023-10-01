@@ -152,11 +152,16 @@ end
 # option2: simply scan the result and select values without NoTangent(), shall be consecutive
 
 function track(::typeof(Base.getindex), xs...; kw...)
+  @assert length(xs) == 2 # the array and the index
   @info "Chainrules for Base.getindex"
   # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
   y, _back = rrule(Base.getindex, data.(xs)...; kw...)
   back = Δ->_back(Δ)[2:2]
-  track_ctor(Call(back, tracker.(xs)), y)
+  if typeof(xs[1]) <: TrackedTuple # the rrule getindex from Tuples returns a Tangent{..}(result), compared to arrays where it returns directly the result
+    back = Δ->(ChainRules.ChainRulesCore.backing(_back(Δ)[2]),)
+  end
+  track_ctor(Call(back, tracker.(xs[1:1])), y)   
+  # TODO: only tracker.(xs[1:1]), tracker(index) is nothing; hm... use the operations on NoTangent() and avoid all this special treatment?
 end
 
 function track(f::F, xs...; kw...) where F

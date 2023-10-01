@@ -13,27 +13,6 @@ gradtest(f, xs::AbstractArray...; kw...) = gradcheck((xs...) -> sum(sin.(f(xs...
 gradtest(f, dims...; kw...) = gradtest(f, rand.(Float64, dims)...; kw...)
 
 ##
-f2(x, y) = prod(x+2*y)
-dx = gradient(f2, [3, 4], [7, 9])
-
-
-f3_ = (x, W, b) -> σ.(W*x .+ b)
-f3 = (x, W, b)->sum(sin.(f3_(x, W, b)))
-x = param(rand(5))
-W = param(rand(2, 5))
-b = param(rand(2))
-y = sum(W*x + b)
-z = sum(sin.(W*x .+ b))
-W*x .+ b
-@run Tracker.back!(z)
-@run gradient(f3, rand(5), rand(2, 5), rand(2))
-# f3(rand(5), rand(2, 5), rand(2))
-
-gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
-
-@testset "gradtests 0" begin
-  @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
-end
 
 @testset "gradtests 1" begin
   @test gradtest((x, W, b) -> σ.(W*x .+ b), 5, (2,5), 2)
@@ -56,7 +35,7 @@ end
   @test gradtest(x -> prod(x), (3,4,5))
 end
 
-@testset "gradtests 2" begin
+@testset "gradtests 1.1" begin
   @test gradtest(x -> softmax(x; dims = 1).*(1:3), 3)
   @test gradtest(x -> softmax(x; dims = 1).*(1:3), (3,5))
   @test gradtest(x -> softmax(x; dims = 2).*(1:3), (3,5))
@@ -70,8 +49,6 @@ end
   @test gradtest(logdet, map((x) -> x*x', (rand(4, 4),))[1])
   @test gradtest((x) -> logabsdet(x)[1], (4, 4))
 end # @testset gradtests
-
-@test gradtest((x) -> logabsdet(x)[1], (4, 4))
 
 @testset "indexing & slicing" begin
   @test gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
