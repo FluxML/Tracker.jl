@@ -336,7 +336,7 @@ end
     y = conv(x, w, cdims)
     @test gradtest((y, w) -> ∇conv_data(y, w, cdims), y, w)
     dcdims = DepthwiseConvDims(x, w)
-    @test_skip gradtest((x, w) -> depthwiseconv(x, w, dcdims), x, w)
+    @test gradtest((x, w) -> depthwiseconv(x, w, dcdims), x, w)
 end
 
 @testset "pooling" begin

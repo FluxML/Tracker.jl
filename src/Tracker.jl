@@ -4,7 +4,7 @@ using MacroTools
 using MacroTools: @q, @forward
 
 using ChainRules
-using ChainRules: rrule, RuleConfig, HasReverseMode
+using ChainRules: rrule, RuleConfig, HasReverseMode, unthunk
 using ForwardDiff
 import LogExpFunctions
 import NaNMath

@@ -40,8 +40,8 @@ function scan(x)
   return
 end
 
-function back_(c::Call, Δ, once)
-  Δs = c.func(Δ)  
+function back_(c::Call, Δ, once)  
+  Δs = c.func(unthunk(Δ))  # apply the pullback function
   length(Δs) == length(c.args) || error("gradient and $(c.func) args must have the same length: $(length(Δs)) != $(length(c.args))")
   # foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
   # TODO: re-enable the above foreach
