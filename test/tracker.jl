@@ -175,7 +175,7 @@ end
 @test gradtest(kron, rand(5,2), rand(3,2), rand(8,2))
 
 @test gradtest(x -> diagm(0 => x), rand(3))
-@test gradtest(x -> Matrix(Diagonal(x)), rand(3))
+@test gradtest(x -> Matrix(Diagonal(x)), rand(3)) #### TODO: fix this
 
 @test gradtest(W -> inv(log.(W * W)), (5,5))
 @test gradtest((A, B) -> A / B , (1,5), (5,5))
