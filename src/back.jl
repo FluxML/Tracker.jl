@@ -41,10 +41,13 @@ function scan(x)
 end
 
 function back_(c::Call, Δ, once)
-  Δs = c.func(Δ)
-  (Δs isa Tuple && length(Δs) >= length(c.args)) ||
-    error("Gradient is not a tuple of length $(length(c.args))")
-  foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
+  Δs = c.func(Δ)  
+  length(Δs) == length(c.args) || error("gradient and $(c.func) args must have the same length: $(length(Δs)) != $(length(c.args))")
+  # foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
+  # TODO: re-enable the above foreach
+  for (x, d) in zip(c.args, data.(Δs))
+    back(x, d, once)
+  end
 end
 
 back_(::Call{Nothing}, Δ, once) = nothing # TODO: can we really get here?
@@ -70,7 +73,7 @@ function back(x::Tracked, Δ, once)
   return
 end
 
-back(::Nothing, Δ, once) = return # TODO: can we really get here?
+back(::Nothing, Δ, once) = return # we have an arg of a Call, which is nothing, meaning is not tracked
 
 # Interface methods
 

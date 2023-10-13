@@ -168,7 +168,6 @@ function track(f::F, xs...; kw...) where F
   @info "Chainrules for $f"
   # untracked primal y; also untracked pullback back as we rrule over the data.(xs)
   y, _back = rrule(f, data.(xs)...; kw...)
-  # the rrule pullback returns (NoTangent(), out_grads) for functions
   # TODO: what happens with structs as functions?
   back = Δ->_back(Δ)[2:end]
   track_ctor(Call(back, tracker.(xs)), y)
