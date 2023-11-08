@@ -182,6 +182,8 @@ for (T, S) in [(:TrackedReal, :Real), (:Real, :TrackedReal), (:TrackedReal, :Tra
     @eval Base.vcat(A::$T, B::$S, Cs::Real...) = track(vcat, A, B, Cs...)
     @eval Base.hcat(A::$T, B::$S, Cs::Real...) = track(hcat, A, B, Cs...)
 end
+Base.vcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(vcat, A, B)
+Base.hcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(hcat, A, B)
 
 Base.vcat(A::TrackedArray) = track(vcat, A)
 Base.hcat(A::TrackedArray) = track(hcat, A)
