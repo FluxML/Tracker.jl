@@ -184,6 +184,11 @@ for (T, S) in [(:TrackedReal, :Real), (:Real, :TrackedReal), (:TrackedReal, :Tra
 end
 Base.vcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(vcat, A, B)
 Base.hcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(hcat, A, B)
+Base.vcat(A::TrackedVector{<:Number, <:AbstractVector{<:Number}}, B::TrackedVector{<:Number, <:AbstractVector{<:Number}}) = track(vcat, A, B)
+Base.vcat(A::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}, B::AbstractMatrix{<:Number}) = track(vcat, A, B)
+Base.vcat(A::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}, B::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}) = track(vcat, A, B)
+Base.vcat(A::TrackedVector{<:Number}, B::AbstractVector{<:Number}) = track(vcat, A, B)
+Base.vcat(A::AbstractVector{<:Number}, B::TrackedVector{<:Number}) = track(vcat, A, B)
 
 Base.vcat(A::TrackedArray) = track(vcat, A)
 Base.hcat(A::TrackedArray) = track(hcat, A)
