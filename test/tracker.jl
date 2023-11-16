@@ -92,7 +92,7 @@ end
     @test gradtest(hcatf, rand(5), rand(5), rand(5,2))
     @test gradtest(hcatf, rand(5)', rand(1,3))
     @test gradtest(hcatf, rand(5), rand(5,2))
-end
+  end
 
   @testset "1-arg $catf" for catf in [vcat, cat1, rvcat, hcat, cat2, rhcat, (x...) -> cat(x..., dims = 3), (x...) -> cat(x..., dims = (1,2))]
     @test gradtest(catf, rand(5))

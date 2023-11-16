@@ -165,30 +165,37 @@ end
 
 for (T, S) in [(:TrackedArray, :TrackedArray), (:TrackedArray, :AbstractArray), (:AbstractArray, :TrackedArray)]
     @eval Base.vcat(A::$T, B::$S, Cs::AbstractArray...) = track(vcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S, Cs::TrackedArray...) = track(vcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S) = track(vcat, A, B)
     @eval Base.hcat(A::$T, B::$S, Cs::AbstractArray...) = track(hcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::TrackedArray...) = track(hcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S) = track(hcat, A, B)
 end
-for (T, S) in [(:TrackedVector, :TrackedVector), (:TrackedVector, :AbstractVector), (:AbstractVector, :TrackedVector)]
+for (T, S) in [(TrackedVector, TrackedVector), (TrackedVector, AbstractVector), (AbstractVector, TrackedVector)]
     @eval Base.vcat(A::$T, B::$S, Cs::AbstractVector...) = track(vcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S, Cs::TrackedVector...) = track(vcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S) = track(vcat, A, B)
 end
 for (T, S) in [(:TrackedVecOrMat, :TrackedVecOrMat), (:TrackedVecOrMat, :AbstractVecOrMat), (:AbstractVecOrMat, :TrackedVecOrMat)]
     @eval Base.vcat(A::$T, B::$S, Cs::AbstractVecOrMat...) = track(vcat, A, B, Cs...)
     @eval Base.hcat(A::$T, B::$S, Cs::AbstractVecOrMat...) = track(hcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S, Cs::TrackedVecOrMat...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::TrackedVecOrMat...) = track(hcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S) = track(vcat, A, B)
+    @eval Base.hcat(A::$T, B::$S) = track(hcat, A, B)
 end
 for (T, S) in [(:TrackedArray, :Real), (:Real, :TrackedArray), (:TrackedArray, :TrackedArray)]
-    @eval Base.vcat(A::$T, B::$S, Cs::Union{AbstractArray, Real}...) = track(vcat, A, B, Cs...)
-    @eval Base.hcat(A::$T, B::$S, Cs::Union{AbstractArray, Real}...) = track(hcat, A, B, Cs...)
+    @eval Base.vcat(A::$T, B::$S, Cs::Union{TrackedArray, AbstractArray, Real}...) = track(vcat, A, B, Cs...)
+    @eval Base.hcat(A::$T, B::$S, Cs::Union{TrackedArray, AbstractArray, Real}...) = track(hcat, A, B, Cs...)
+    if T == :Real || S == :Real
+      @eval Base.vcat(A::$T, B::$S) = track(vcat, A, B)
+      @eval Base.hcat(A::$T, B::$S) = track(hcat, A, B)
+    end
 end
 for (T, S) in [(:TrackedReal, :Real), (:Real, :TrackedReal), (:TrackedReal, :TrackedReal)]
     @eval Base.vcat(A::$T, B::$S, Cs::Real...) = track(vcat, A, B, Cs...)
     @eval Base.hcat(A::$T, B::$S, Cs::Real...) = track(hcat, A, B, Cs...)
 end
-Base.vcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(vcat, A, B)
-Base.hcat(A::TrackedVecOrMat{T1, <:AbstractArray}, B::TrackedVecOrMat{T2, <:AbstractArray}) where {T1, T2} = track(hcat, A, B)
-Base.vcat(A::TrackedVector{<:Number, <:AbstractVector{<:Number}}, B::TrackedVector{<:Number, <:AbstractVector{<:Number}}) = track(vcat, A, B)
-Base.vcat(A::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}, B::AbstractMatrix{<:Number}) = track(vcat, A, B)
-Base.vcat(A::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}, B::TrackedMatrix{<:Number, <:AbstractMatrix{<:Number}}) = track(vcat, A, B)
-Base.vcat(A::TrackedVector{<:Number}, B::AbstractVector{<:Number}) = track(vcat, A, B)
-Base.vcat(A::AbstractVector{<:Number}, B::TrackedVector{<:Number}) = track(vcat, A, B)
 
 Base.vcat(A::TrackedArray) = track(vcat, A)
 Base.hcat(A::TrackedArray) = track(hcat, A)
