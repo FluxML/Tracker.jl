@@ -41,11 +41,6 @@ Base.convert(T::Type{<:TrackedArray}, x::TrackedArray) =
 Base.convert(::Type{<:TrackedArray{T,N,A}}, x::AbstractArray) where {T,N,A} =
   TrackedArray(convert(A, x))
 
-Base.show(io::IO, t::Type{TrackedArray{T,N,A}}) where {T,N,A<:AbstractArray{T,N}} =
-  @isdefined(A) ?
-    print(io, "TrackedArray{…,$A}") :
-    invoke(show, Tuple{IO,DataType}, io, t)
-
 function Base.summary(io::IO, x::TrackedArray)
   print(io, "Tracked ")
   summary(io, data(x))
