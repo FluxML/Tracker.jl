@@ -509,3 +509,19 @@ end
   @test gradcheck(x -> logabsgamma(only(x))[1], rand(1))
   @test gradcheck(x -> logabsgamma(only(x))[2], rand(1))
 end
+
+@testset "rand" begin
+  Random.seed!(1234)
+  n_samples = 10^6
+  x = [Random.rand(Tracker.TrackedReal{Float64}) for i in 1:n_samples]
+  @test isapprox(mean(x), 0.5, atol=1e-2, rtol=0)
+  @test isapprox(var(x), 1/12, atol=1e-2, rtol=0)
+
+  x = [Random.randn(Tracker.TrackedReal{Float64}) for i in 1:n_samples]
+  @test isapprox(mean(x), 0., atol=1e-2, rtol=0)
+  @test isapprox(var(x), 1., atol=1e-2, rtol=0)
+
+  x = [Random.randexp(Tracker.TrackedReal{Float64}) for i in 1:n_samples]
+  @test isapprox(mean(x), 1., atol=1e-2, rtol=0)
+  @test isapprox(var(x), 1., atol=1e-2, rtol=0)
+end
