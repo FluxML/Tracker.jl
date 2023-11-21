@@ -67,7 +67,7 @@ Base.promote_rule(::Type{TrackedReal{S}},::Type{T}) where {S,T} =
 using Random
 
 for f in :[rand, randn, randexp].args
-  @eval Random.$f(rng::AbstractRNG,::Type{TrackedReal{T}}) where {T} = param(rand(rng,T))
+  @eval Random.$f(rng::AbstractRNG,::Type{TrackedReal{T}}) where {T} = param(Random.$f(rng,T))
 end
 
 for (M, f, arity) in DiffRules.diffrules(; filter_modules=nothing)
