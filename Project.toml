@@ -1,6 +1,6 @@
 name = "Tracker"
 uuid = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-version = "0.2.30"
+version = "0.2.31"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -26,7 +26,7 @@ PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
 TrackerPDMatsExt = "PDMats"
 
 [compat]
-Adapt = "3"
+Adapt = "3, 4"
 DiffRules = "1.4"
 ForwardDiff = "0.10"
 Functors = "0.3, 0.4"
