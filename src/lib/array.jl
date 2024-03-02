@@ -35,6 +35,9 @@ Base.eltype(x::Type{<:TrackedArray{T}}) where T <: Real = TrackedReal{T}
 
 Base.convert(::Type{T}, x::S) where {T<:TrackedArray,S<:T} = x
 
+Base.convert(::Type{AbstractArray{T}}, x::TrackedArray) where T = T.(x)
+Base.convert(::Type{AbstractArray{T}}, x::TrackedArray{T}) where T = x  # solve an ambiguity
+
 Base.convert(T::Type{<:TrackedArray}, x::TrackedArray) =
   error("Not implemented: convert $(typeof(x)) to $T")
 
@@ -503,7 +506,7 @@ Base.:*(x::TrackedMatrix, y::Diagonal) = track(*, x, y)
 
 using NNlib
 import NNlib: softmax, ∇softmax, logsoftmax, ∇logsoftmax, conv, ∇conv_data, depthwiseconv, maxpool, meanpool
-import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims, within_gradient
+import NNlib: DenseConvDims, DepthwiseConvDims, PoolDims, within_gradient, dropout
 
 within_gradient(::TrackedArray) = true
 within_gradient(::TrackedReal) = true
@@ -534,6 +537,27 @@ else
     y = logsoftmax(data(xs); dims=dims)
     y, Δ -> (nobacksies(:logsoftmax, ∇logsoftmax(data(Δ), data(xs), data(y); dims=dims)),)
   end
+end
+
+dropout(rng::AbstractRNG, A::TrackedArray, p::Real; dims=:) = track(dropout, rng, A, p; 
+dims)
+
+@grad function dropout(rng::AbstractRNG, A::TrackedArray{T}, p::Real; dims = :) where T
+    val = convert(T, 1/(1-p))
+    keep = if dims isa Colon
+        similar(A.data, T, size(A))
+    else
+        similar(A.data, T, ntuple(d -> d in dims ? size(A,d) : 1, ndims(A)))
+    end
+    rand!(rng, keep)
+    Y = @. ((keep>p) * val) * A.data
+    function dropout_back(Δ)
+        dY = data(Δ)
+        dA = @. ((keep>p) * val) * dY
+        # (nothing, nobacksies(:dropout, dA), nothing)
+        (nothing, dA, nothing)
+    end
+    return Y, dropout_back
 end
 
 depthwiseconv(x::TrackedArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
@@ -660,3 +684,4 @@ end
     end
   end
 end
+
