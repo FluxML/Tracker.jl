@@ -222,7 +222,7 @@ function withgradient(f, xs...)
     pxs = fmap(param, xs; exclude = isnumeric, walk = _trainable_walk)
     l = f(pxs...)
     l1 = l isa Union{Tuple, NamedTuple} ? first(l) : l
-    val = l isa Union{Tuple, NamedTuple} ? map(data, l) : l
+    val = l isa Union{Tuple, NamedTuple} ? fmap(data, l) : data(l)
     losscheck(l1)
     l1 isa TrackedReal || return (; val, grad = map(_ -> nothing, xs))
     @interrupts back!(l1)
