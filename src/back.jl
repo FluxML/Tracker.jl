@@ -191,10 +191,15 @@ However, it differs from `gradient` in several other respects:
   returns a tree-like gradient matching the shape of a Flux model.
   This recursion obeys restrictions imposed by `Optimisers.trainable`, if defined.
 * Only objects satisfying `Optimisers.isnumeric` are regarded as parameters,
-  thus in particular integers are ignored.
+  thus in particular arrays of integers are ignored.
 * Returns plain arrays, not tracked. Uses `nothing` as a strong zero gradient, like Zygote.
+* Allows you to capture auxillary outputs, in addition to the scalar
+  used by `gradient`. To do this, `f` must return a Tuple or NamedTuple.
+  Then it calculates `grad = gradient(first∘f, args...)
+  but returns the whole `val = f(args...)`:
 
 # Examples
+
 ```
 julia> nt = (vec = [1.0, 2.0], mat = [4.0;;], fun = sin);
 
@@ -216,10 +221,12 @@ julia> withgradient(model, rand(Float32, 2)) do m, x
 function withgradient(f, xs...)
     pxs = fmap(param, xs; exclude = isnumeric, walk = _trainable_walk)
     l = f(pxs...)
-    losscheck(l)
-    l isa TrackedReal || return (val = l, grad = nothing)
-    @interrupts back!(l)
-    (val = data(l), grad = rec_grad(pxs))
+    l1 = l isa Union{Tuple, NamedTuple} ? first(l) : l
+    val = l isa Union{Tuple, NamedTuple} ? fmap(data, l) : data(l)
+    losscheck(l1)
+    l1 isa TrackedReal || return (; val, grad = map(_ -> nothing, xs))
+    @interrupts back!(l1)
+    (; val, grad = rec_grad(pxs))
 end
 
 function _trainable_walk(f, x)

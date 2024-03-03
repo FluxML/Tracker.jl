@@ -26,7 +26,11 @@ Optimisers.trainable(x::TwoThirds) = (a = x.a,)
   nt = (vec = [1.0, 2.0], mat = [4.0;;], fun = sin);
   @test withgradient((x, p) -> sum(abs2, x.vec) ^ p, nt, 2) == (val = 25.0, grad = ((vec = [20.0, 40.0], mat = [0.0;;], fun = nothing), nothing))
 
-  @test withgradient(x -> sum(x.v), (v = [1, 2], w = [3.0])) == (val = 3, grad = nothing)
+  @test withgradient(x -> sum(x.v), (v = [1, 2], w = [3.0])) == (val = 3, grad = (nothing,))
+  @test withgradient(x -> (sum(x.v), x.v), (v = [1, 2], w = [3.0])) == (val = (3, [1, 2]),
+    grad = (nothing,))
+  @test withgradient(x -> (sum=sum(x.v), aux=33), (v = [1, 2], w = [3.0])) ==
+    (val = (sum=3, aux=33), grad = (nothing,))
 
   m = TwoThirds([1.0], [2.0], [3.0])  # only the first should be tracked, but all should survive
   g = withgradient(m -> only(m.a::AbstractVector + m.b::Vector + m.c::Vector), m)

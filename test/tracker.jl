@@ -40,6 +40,10 @@ end
 @test gradtest(x -> logsoftmax(x; dims = 1).*(1:3), (3,5))
 @test gradtest(x -> logsoftmax(x; dims = 2).*(1:3), (3,5))
 
+RNG = NNlib.Random.MersenneTwister(1)
+@test gradtest(x -> dropout(copy(RNG), x, 0.5), 10)
+@test gradtest(x -> dropout(copy(RNG), x, 0.4; dims=1), (8, 9))
+
 @test gradtest(x -> x', rand(5))
 
 @test gradtest(det, (4, 4))
