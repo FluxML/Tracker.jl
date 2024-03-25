@@ -19,20 +19,20 @@ zero_grad!(x::AbstractArray) = (x .= 0)
 
 scan(c::Call) = foreach(scan, c.args)
 
-function scan(x::Tracked)
-  x.isleaf && return
-  ref = x.ref += 1
-  if ref == 1
-    scan(x.f)
-    isdefined(x, :grad) && (x.grad = zero_grad!(x.grad))
-  end
-  return
-end
+# function scan(x::Tracked)
+#   x.isleaf && return
+#   ref = x.ref += 1
+#   if ref == 1
+#     scan(x.f)
+#     isdefined(x, :grad) && (x.grad = zero_grad!(x.grad))
+#   end
+#   return
+# end
 
-function scan(x)
-  istracked(x) && scan(tracker(x))
-  return
-end
+# function scan(x)
+#   istracked(x) && scan(tracker(x))
+#   return
+# end
 
 function back_(c::Call, Δ, once)
   Δs = c.func(Δ)
