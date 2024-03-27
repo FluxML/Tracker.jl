@@ -17,7 +17,7 @@ init_grad(x) = zero(x)
 zero_grad!(x) = zero(x)
 zero_grad!(x::AbstractArray) = (x .= 0)
 
-scan(c::Call) = foreach(scan, c.args)
+# scan(c::Call) = foreach(scan, c.args)
 
 # function scan(x::Tracked)
 #   x.isleaf && return
@@ -34,15 +34,25 @@ scan(c::Call) = foreach(scan, c.args)
 #   return
 # end
 
-function back_(c::Call, Δ, once)
+# function back_(c::Call, Δ, once)
+#   Δs = c.func(Δ)
+#   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
+#     error("Gradient is not a tuple of length $(length(c.args))")
+#   foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
+# end
+
+function back_(c::Call, Δ)
   Δs = c.func(Δ)
   (Δs isa Tuple && length(Δs) >= length(c.args)) ||
     error("Gradient is not a tuple of length $(length(c.args))")
-  foreach((x, d) -> back(x, d, once), c.args, data.(Δs))
+  foreach((x, d) -> back(x, d), c.args, data.(Δs))
 end
 
-back_(::Call{Nothing}, Δ, once) = nothing
-back_(::Call{Missing}, Δ, once) = error("`back!` was already used")
+# back_(::Call{Nothing}, Δ, once) = nothing
+# back_(::Call{Missing}, Δ, once) = error("`back!` was already used")
+
+back_(::Call{Nothing}, Δ) = nothing
+back_(::Call{Missing}, Δ) = error("`back!` was already used")
 
 accum!(x, Δ) = x .+ Δ
 accum!(x::AbstractArray, Δ) = (x .+= Δ)
@@ -65,26 +75,28 @@ accum!(x::AbstractArray, Δ) = (x .+= Δ)
 # end
 
 
-function back(x::Tracked, Δ, once)
-  if !x.isleaf  # If x is not a leaf node
-    ref = getproperty(x, :ref, 0)  # Get the ref count of x, default to 0 if not available
-    grad = getproperty(x, :grad, nothing)  # Get the gradient of x, default to nothing if not available
+function back(x::Tracked, Δ)
+  # Increment the reference count
+  x.ref += 1
 
-    if isnothing(grad) || ref == 0  # If grad is not computed or x is not referenced elsewhere
-      x.grad = Δ  # Set the gradient of x to Δ
-    else
-      x.grad = accum!(grad, Δ)  # Accumulate Δ into the existing gradient of x
-    end
-
-    if ref == 0  # If x is not referenced elsewhere
-      back_(x.f, x.grad, once)  # Backpropagate through the function call of x with gradient x.grad
-      once && !x.isleaf && (x.f = Call(missing, ()))  # If once is true and x is not a leaf, replace x.f with a missing function call
-    end
+  # Handle gradient accumulation and backpropagation based on the reference count
+  if x.ref == 1
+    # Node has no more references, perform backpropagation and reset gradient
+    x.grad = Δ
+    back_(x.f, Δ)
+  else
+    # Node already has additional references, accumulate gradient into the gradient buffer
+    x.grad = accum!(x.grad, Δ)
   end
+
+  # Decrement the reference count
+  x.ref -= 1
+
   return
 end
 
-back(::Nothing, Δ, once) = return
+# back(::Nothing, Δ, once) = return
+back(::Nothing, Δ) = return
 
 # Interface methods
 
@@ -96,16 +108,18 @@ back(::Nothing, Δ, once) = return
 
 
 function back!(x, Δ; once=true)
-  back(tracker(x), Δ, once)  # Call the back function starting from the tracker of x
+  # back(tracker(x), Δ, once)  # Call the back function starting from the tracker of x
+  back(tracker(x), Δ)  # Call the back function starting from the tracker of x
   return
 end
 
-# function back!(x, Δ; once=true)
-#   istracked(x) || return
-#   scan(x)
-#   back(tracker(x), Δ, once)
-#   return
-# end
+function back!(x, Δ; once=true)
+  istracked(x) || return
+  # scan(x)
+  # back(tracker(x), Δ, once)
+  back(tracker(x), Δ)
+  return
+end
 
 function extract_grad!(x)
   x̄ = copy(grad(x))
