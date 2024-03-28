@@ -75,25 +75,52 @@ accum!(x::AbstractArray, Δ) = (x .+= Δ)
 # end
 
 
-function back(x::Tracked, Δ)
-  # Increment the reference count
-  x.ref += 1
+# function back(x::Tracked, Δ)
+#   # Increment the reference count
+#   x.ref += 1
 
-  # Handle gradient accumulation and backpropagation based on the reference count
-  if x.ref == 1
-    # Node has no more references, perform backpropagation and reset gradient
-    x.grad = Δ
-    back_(x.f, Δ)
-  else
-    # Node already has additional references, accumulate gradient into the gradient buffer
+#   # Handle gradient accumulation and backpropagation based on the reference count
+#   if x.ref == 1
+#     # Node has no more references, perform backpropagation and reset gradient
+#     x.grad = Δ
+#     back_(x.f, Δ)
+#   else
+#     # Node already has additional references, accumulate gradient into the gradient buffer
+#     x.grad = accum!(x.grad, Δ)
+#   end
+
+#   # Decrement the reference count
+#   x.ref -= 1
+
+#   return
+# end
+
+
+
+function back(x::Tracked, Δ)
+  if x.isleaf
     x.grad = accum!(x.grad, Δ)
+    return
   end
 
-  # Decrement the reference count
   x.ref -= 1
+  if isdefined(x, :grad)
+    x.grad = accum!(x.grad, Δ)
+  elseif x.ref > 0
+    x.grad = Δ
+  else
+    x.grad = Δ
+  end
 
-  return
+  if x.ref == 0
+    Δs = x.f(Δ)
+    for (arg, d) in zip(x.args, Δs)
+      back(arg, d)
+    end
+  end
 end
+
+
 
 # back(::Nothing, Δ, once) = return
 back(::Nothing, Δ) = return
@@ -107,11 +134,17 @@ back(::Nothing, Δ) = return
 # from within a backpropagator)
 
 
-function back!(x, Δ; once=true)
-  # back(tracker(x), Δ, once)  # Call the back function starting from the tracker of x
-  back(tracker(x), Δ)  # Call the back function starting from the tracker of x
-  return
+function back!(x, Δ)
+  istracked(x) || return
+  back(tracker(x), Δ)
 end
+
+
+# function back!(x, Δ; once=true)
+#   # back(tracker(x), Δ, once)  # Call the back function starting from the tracker of x
+#   back(tracker(x), Δ)  # Call the back function starting from the tracker of x
+#   return
+# end
 
 function back!(x, Δ; once=true)
   istracked(x) || return
