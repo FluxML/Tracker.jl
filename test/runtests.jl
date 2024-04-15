@@ -5,6 +5,7 @@ Random.seed!(0)
 @testset "Tracker" begin
 
 include("tracker.jl")
+include("chainrules.jl")
 
 using Tracker: jacobian
 

@@ -39,7 +39,7 @@ macro grad_from_chainrules(fcall)
   untrack_args = map(enumerate(xs)) do (i, x)
     Meta.isexpr(x, :(::)) || return (x, nothing)
     name, type = x.args
-    Meta.isexpr(type, :curly) && (type = type.args[1]) # Strip parameters from types
+    type = __strip_type(type)
     type in (:TrackedArray, :TrackedVector, :TrackedMatrix, :TrackedReal) || return (name, nothing)
     xdata = gensym(name)
     return xdata, :($(xdata) = $(Tracker.data)($(name)))
@@ -82,3 +82,10 @@ end
 @inline __no_crctangent(::CRC.ZeroTangent) = nothing
 @inline __no_crctangent(x::CRC.AbstractThunk) = CRC.unthunk(x)
 @inline __no_crctangent(x) = x
+
+@inline function __strip_type(type)
+  Meta.isexpr(type, :curly) && (type = type.args[1]) # Strip parameters from types
+  Meta.isexpr(type, :(.)) && (type = type.args[2]) # Strip Tracker from Tracker.<...> 
+  type isa QuoteNode && (type = type.value) # Unwrap a QuoteNode
+  return type
+end
