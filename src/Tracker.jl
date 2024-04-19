@@ -5,6 +5,7 @@ using MacroTools: @q, @forward
 
 using DiffRules
 using ForwardDiff
+import ChainRulesCore as CRC
 import LogExpFunctions
 import NaNMath
 import SpecialFunctions
@@ -71,6 +72,7 @@ end
 
 include("idset.jl")
 include("params.jl")
+include("macros.jl")
 include("lib/real.jl")
 include("lib/array.jl")
 include("back.jl")

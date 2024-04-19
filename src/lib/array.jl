@@ -560,59 +560,17 @@ dims)
     return Y, dropout_back
 end
 
-depthwiseconv(x::TrackedArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
-depthwiseconv(x::AbstractArray, w::TrackedArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
-depthwiseconv(x::TrackedArray, w::AbstractArray, cdims::DepthwiseConvDims; kw...) = track(depthwiseconv, x, w, cdims; kw...)
-
-@grad depthwiseconv(x, w, cdims::DepthwiseConvDims; kw...) =
-  depthwiseconv(data(x), data(w), cdims; kw...),
-    Δ -> nobacksies(:depthwiseconv,
-      (NNlib.∇depthwiseconv_data(data.((Δ, w))..., cdims; kw...),
-       NNlib.∇depthwiseconv_filter(data.((x, Δ))..., cdims; kw...),
-       nothing))
-
-conv(x::TrackedArray,  w::TrackedArray, cdims::DenseConvDims;  kw...) = track(conv, x, w, cdims; kw...)
-conv(x::AbstractArray, w::TrackedArray, cdims::DenseConvDims;  kw...) = track(conv, x, w, cdims; kw...)
-conv(x::TrackedArray,  w::AbstractArray, cdims::DenseConvDims; kw...) = track(conv, x, w, cdims; kw...)
-
-@grad conv(x, w, cdims::DenseConvDims; kw...) =
-  conv(data(x), data(w), cdims; kw...),
-    Δ -> nobacksies(:conv,
-      (NNlib.∇conv_data(data.((Δ, w))..., cdims; kw...),
-       NNlib.∇conv_filter(data.((x, Δ))..., cdims; kw...),
-       nothing))
-
-∇conv_data(x::TrackedArray,  w::TrackedArray, cdims::DenseConvDims;  kw...) = track(∇conv_data, x, w, cdims; kw...)
-∇conv_data(x::AbstractArray, w::TrackedArray, cdims::DenseConvDims;  kw...) = track(∇conv_data, x, w, cdims; kw...)
-∇conv_data(x::TrackedArray,  w::AbstractArray, cdims::DenseConvDims; kw...) = track(∇conv_data, x, w, cdims; kw...)
-
-@grad function ∇conv_data(y, w, cdims::DenseConvDims; kw...)
-  return (
-    ∇conv_data(data(y), data(w), cdims; kw...),
-    Δ -> begin
-      return nobacksies(:conv,
-        (NNlib.conv(data.((Δ, w))..., cdims; kw...),
-         NNlib.∇conv_filter(data.((Δ, y))..., cdims; kw...),
-         nothing)
-      )
-    end
-  )
+for (xType, wType) in [(:TrackedArray, :TrackedArray), (:AbstractArray, :TrackedArray),
+    (:TrackedArray, :AbstractArray)]
+  @eval begin
+    @grad_from_chainrules depthwiseconv(::$xType, ::$wType, ::DepthwiseConvDims; kw...)
+    @grad_from_chainrules conv(::$xType, ::$wType, ::DenseConvDims; kw...)
+    @grad_from_chainrules ∇conv_data(::$xType, ::$wType, ::DenseConvDims; kw...)
+  end
 end
 
-maxpool(x::TrackedArray, pdims::PoolDims; kw...) = track(maxpool, x, pdims; kw...)
-
-@grad function maxpool(x, pdims::PoolDims; kw...)
-  y = maxpool(data(x), pdims; kw...)
-  y, Δ -> (nobacksies(:maxpool, NNlib.∇maxpool(data.((Δ, y, x))..., pdims; kw...)), nothing)
-end
-
-meanpool(x::TrackedArray, pdims::PoolDims; kw...) = track(meanpool, x, pdims; kw...)
-
-
-@grad function meanpool(x, pdims::PoolDims; kw...)
-  y = meanpool(data(x), pdims; kw...)
-  y, Δ -> (nobacksies(:meanpool, NNlib.∇meanpool(data.((Δ, y, x))..., pdims; kw...)), nothing)
-end
+@grad_from_chainrules maxpool(::TrackedArray, ::PoolDims; kw...)
+@grad_from_chainrules meanpool(::TrackedArray, ::PoolDims; kw...)
 
 # Broadcasting
 

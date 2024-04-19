@@ -1,9 +1,10 @@
 name = "Tracker"
 uuid = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
-version = "0.2.33"
+version = "0.2.34"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 DiffRules = "b552c78f-8df3-52c6-915a-8e097449b14b"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
@@ -27,6 +28,7 @@ TrackerPDMatsExt = "PDMats"
 
 [compat]
 Adapt = "3, 4"
+ChainRulesCore = "1.23"
 DiffRules = "1.4"
 ForwardDiff = "0.10"
 Functors = "0.3, 0.4"
