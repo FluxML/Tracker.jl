@@ -52,6 +52,11 @@ RNG = NNlib.Random.MersenneTwister(1)
 
 end # @testset gradtests
 
+@testset "zero" begin
+  @test zero(TrackedArray(rand(2))) isa TrackedArray
+  @test gradtest(x-> zero(x) .* x, (2,))
+end
+
 @testset "indexing & slicing" begin
   @test gradtest(x->view(x, 1:2, 1:2), rand(4, 4))
 end

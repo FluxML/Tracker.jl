@@ -99,7 +99,7 @@ Base.getindex(xs::TrackedArray, i...; kwargs...) = track(getindex, xs, i...; kwa
 
 @grad function getindex(xs::AbstractArray, i...; kwargs...)
   getindex(data(xs), i...; kwargs...), function (Δ)
-        Δ′ = zero(xs)
+        Δ′ = zero(data(xs))
         setindex!(Δ′, data(Δ), i...; kwargs...)
         (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
     end
@@ -107,7 +107,7 @@ end
 
 @grad function getindex(xs::AbstractArray, i::Array...)
   data(xs)[i...], function (Δ)
-    Δ′ = zero(xs)
+    Δ′ = zero(data(xs))
     @views Δ′[i...] .+= data(Δ)
     (nobacksies(:getindex, Δ′), map(_->nothing, i)...)
   end
@@ -117,7 +117,7 @@ Base.view(x::TrackedArray, inds...; kwargs...) = track(Base.view, x, inds...; kw
 
 @grad function view(x::AbstractArray, inds...; kwargs...)
     view(data(x), inds...; kwargs...), function (Δ)
-        grad_output = zero(x)
+        grad_output = zero(data(x))
         subgrad = view(grad_output, inds...; kwargs...)
         subgrad[:] = data(Δ)
         (nobacksies(:view, grad_output), map(_->nothing, inds)...)
@@ -144,10 +144,11 @@ logabsdet(xs::TrackedArray) = track(logabsdet, xs)
 @grad logabsdet(xs) = logabsdet(data(xs)), Δ -> (Δ[1] * transpose(inv(xs)),)
 
 Base.repeat(xs::TrackedArray; kw...) = track(repeat, xs; kw...)
+Base.zero(x::Tracker.TrackedArray) = zero.(x)
 
 @grad function repeat(xs; inner=ntuple(x->1, ndims(xs)), outer=ntuple(x->1, ndims(xs)))
   repeat(data(xs), inner = inner, outer = outer), function (Δ)
-    Δ′ = zero(xs)
+    Δ′ = zero(data(xs))
     S = size(xs)
 
     # Loop through each element of Δ, calculate source dimensions, accumulate into Δ′
@@ -433,7 +434,7 @@ Base.minimum(xs::TrackedArray; dims = :) = track(minimum, xs, dims = dims)
 
 @grad function maximum(xs; dims = dims)
   maximum(data(xs), dims = dims), function (Δ)
-    Δ′ = zero(xs)
+    Δ′ = zero(data(xs))
     _, i = findmax(data(xs), dims = dims)
     Δ′[i] = data(Δ)
     return (nobacksies(:maximum, Δ′),)
@@ -442,7 +443,7 @@ end
 
 @grad function minimum(xs;  dims = dims)
   minimum(data(xs),  dims = dims), function (Δ)
-    Δ′ = zero(xs)
+    Δ′ = zero(data(xs))
     _, i = findmin(data(xs),  dims = dims)
     Δ′[i] = data(Δ)
     return (nobacksies(:minimum, Δ′),)
