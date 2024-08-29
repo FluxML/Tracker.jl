@@ -144,7 +144,7 @@ logabsdet(xs::TrackedArray) = track(logabsdet, xs)
 @grad logabsdet(xs) = logabsdet(data(xs)), Δ -> (Δ[1] * transpose(inv(xs)),)
 
 Base.repeat(xs::TrackedArray; kw...) = track(repeat, xs; kw...)
-Base.zero(x::Tracker.TrackedArray) = zero.(x)
+Base.zero(x::Tracker.TrackedArray) = TrackedArray(zero(x.data))
 
 @grad function repeat(xs; inner=ntuple(x->1, ndims(xs)), outer=ntuple(x->1, ndims(xs)))
   repeat(data(xs), inner = inner, outer = outer), function (Δ)
