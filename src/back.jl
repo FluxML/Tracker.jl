@@ -173,7 +173,7 @@ Calculate the output jacobian `J = d/dx m(x)` such that each row `i` of `J` corr
 """
 function jacobian(f, x::AbstractVector)
   y::AbstractVector, back = forward(f, x)
-  ȳ(i) = [i == j for j = 1:length(y)]
+  ȳ(i) = false .* y .+ (1:length(y) .== i)
   vcat([transpose(back(ȳ(i))[1]) for i = 1:length(y)]...)
 end
 
