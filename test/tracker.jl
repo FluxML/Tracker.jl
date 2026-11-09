@@ -519,6 +519,18 @@ end
   @test gradcheck(x -> logabsgamma(only(x))[2], rand(1))
 end
 
+@testset "promotion" begin
+  x = Tracker.param(1.0)
+  @test promote_type(typeof(x), Int) === TrackedReal{Float64}
+  @test promote_type(typeof(x), Float32) === TrackedReal{Float64}
+  @test promote_type(TrackedReal{Float32}, TrackedReal{Float64}) === TrackedReal{Float64}
+  # non-real types: no `TrackedReal{<:Non-Real}` (which errors)
+  @test promote_type(typeof(x), Expr) === Any
+  @test promote_type(typeof(x), String) === Any
+  @test eltype([x, missing]) === Union{Missing, TrackedReal{Float64}}
+  @test eltype([x, nothing]) === Union{Nothing, TrackedReal{Float64}}
+end
+
 @testset "rand" begin
   Random.seed!(1234)
   n_samples = 10^6
