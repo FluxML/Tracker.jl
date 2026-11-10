@@ -61,7 +61,10 @@ Printf.tofloat(x::TrackedReal) = Printf.tofloat(data(x))
 
 Base.float(x::TrackedReal) = x
 
-Base.promote_rule(::Type{TrackedReal{S}},::Type{T}) where {S,T} =
+Base.promote_rule(::Type{TrackedReal{S}}, ::Type{T}) where {S,T<:Real} =
+  TrackedReal{promote_type(S,T)}
+# Don't nest: all levels of differentiation are tracked on one graph
+Base.promote_rule(::Type{TrackedReal{S}}, ::Type{TrackedReal{T}}) where {S,T} =
   TrackedReal{promote_type(S,T)}
 
 using Random
